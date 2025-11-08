@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import { Companion } from './Companion';
 import { CaseBriefing } from './CaseBriefing';
+import { CrimeScene } from './CrimeScene';
 import { SequencePuzzle } from './puzzles/SequencePuzzle';
 import { MirrorPuzzle } from './puzzles/MirrorPuzzle';
 import { GearPuzzle } from './puzzles/GearPuzzle';
@@ -10,6 +11,7 @@ import { LogicPuzzle } from './puzzles/LogicPuzzle';
 import { SpatialPuzzle } from './puzzles/SpatialPuzzle';
 import { Trophy, Star, ArrowRight } from 'lucide-react';
 import type { PuzzleConfig } from '../types';
+import { crimeScenes } from '../data/crimeScenes';
 
 interface Props {
   onComplete: () => void;
@@ -30,6 +32,8 @@ export function GameSession({ onComplete }: Props) {
   const [puzzleIndex, setPuzzleIndex] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
   const [showBriefing, setShowBriefing] = useState(true);
+  const [showCrimeScene, setShowCrimeScene] = useState(true);
+  const [collectedEvidence, setCollectedEvidence] = useState<string[]>([]);
   const [sessionScore, setSessionScore] = useState(0);
 
   const totalPuzzles = adaptiveState?.nextPuzzles.length || 5;
@@ -77,6 +81,12 @@ export function GameSession({ onComplete }: Props) {
   };
 
   const handleBriefingComplete = () => {
+    setShowBriefing(false);
+  };
+
+  const handleCrimeSceneComplete = (foundClues: string[]) => {
+    setCollectedEvidence(foundClues);
+    setShowCrimeScene(false);
     setShowBriefing(false);
   };
 
@@ -165,6 +175,20 @@ export function GameSession({ onComplete }: Props) {
           <p className="text-gray-600">Loading puzzle...</p>
         </div>
       </div>
+    );
+  }
+
+  // Show crime scene at the start (only for cases 1-5 which have crime scenes)
+  if (showCrimeScene && puzzleIndex === 0 && crimeScenes[currentZone.id]) {
+    const sceneData = crimeScenes[currentZone.id];
+    return (
+      <CrimeScene
+        caseId={sceneData.caseId}
+        sceneDescription={sceneData.description}
+        clues={sceneData.clues}
+        onComplete={handleCrimeSceneComplete}
+        requiredClues={sceneData.requiredClues}
+      />
     );
   }
 
