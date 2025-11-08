@@ -12,7 +12,7 @@ import type {
   CompanionState
 } from '../types';
 import { adaptiveAlgorithm } from '../lib/adaptive-algorithm';
-import { supabase } from '../lib/supabase';
+import { storage } from '../lib/supabase';
 
 interface GameState {
   user: User | null;
@@ -140,31 +140,19 @@ export const useGameStore = create<GameState>((set, get) => ({
     const zone = ZONES.find(z => z.id === zoneId);
     if (!zone) return;
 
-    const { data: sessionData, error } = await supabase
-      .from('sessions')
-      .insert({
-        user_id: user.id,
-        zone_id: zoneId,
-        puzzles_completed: 0,
-        total_score: 0
-      })
-      .select()
-      .maybeSingle();
-
-    if (error || !sessionData) {
-      console.error('Failed to create session:', error);
-      set({ isLoading: false });
-      return;
-    }
-
     const session: Session = {
-      id: sessionData.id,
-      zoneId: sessionData.zone_id,
-      startedAt: sessionData.started_at,
+      id: storage.generateId(),
+      zoneId: zoneId,
+      startedAt: new Date().toISOString(),
       puzzlesCompleted: 0,
       totalScore: 0,
       attempts: []
     };
+
+    // Save session to localStorage
+    const data = storage.getData();
+    data.sessions.push(session);
+    storage.saveData(data);
 
     const tier = user.tier;
     const adaptiveState = adaptiveAlgorithm.generateAdaptiveState(profiles, tier, 0);
@@ -182,22 +170,23 @@ export const useGameStore = create<GameState>((set, get) => ({
     const { currentSession, user } = get();
     if (!currentSession || !user) return;
 
-    await supabase
-      .from('sessions')
-      .update({
-        completed_at: new Date().toISOString(),
-        puzzles_completed: currentSession.puzzlesCompleted,
-        total_score: currentSession.totalScore
-      })
-      .eq('id', currentSession.id);
+    // Update session in localStorage
+    const data = storage.getData();
+    const sessionIndex = data.sessions.findIndex(s => s.id === currentSession.id);
+    if (sessionIndex !== -1) {
+      data.sessions[sessionIndex] = {
+        ...currentSession,
+        completedAt: new Date().toISOString()
+      };
+    }
 
-    await supabase
-      .from('users')
-      .update({
-        last_played: new Date().toISOString(),
-        sessions_this_month: user.sessionsThisMonth + 1
-      })
-      .eq('id', user.id);
+    // Update user data
+    if (data.user) {
+      data.user.last_played = new Date().toISOString();
+      data.user.sessions_this_month = (data.user.sessions_this_month || 0) + 1;
+    }
+
+    storage.saveData(data);
 
     set({
       currentSession: null,
@@ -226,7 +215,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       hintsUsed: attemptData.hintsUsed
     });
 
-    await supabase.from('puzzle_attempts').insert({
+    const attempt = {
+      id: storage.generateId(),
       session_id: currentSession.id,
       user_id: user.id,
       puzzle_type: attemptData.puzzleType,
@@ -238,8 +228,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       attempts_used: attemptData.attemptsUsed,
       hints_used: attemptData.hintsUsed,
       optimal_moves: attemptData.optimalMoves,
-      actual_moves: attemptData.actualMoves
-    });
+      actual_moves: attemptData.actualMoves,
+      created_at: new Date().toISOString()
+    };
 
     const newProfiles = adaptiveAlgorithm.updateProfiles(
       profiles,
@@ -247,23 +238,23 @@ export const useGameStore = create<GameState>((set, get) => ({
       score
     );
 
-    await supabase
-      .from('cognitive_profiles')
-      .update({
-        patterns: Math.round(newProfiles.patterns),
-        spatial: Math.round(newProfiles.spatial),
-        logic_score: Math.round(newProfiles.logic),
-        lateral_thinking: Math.round(newProfiles.lateral),
-        sequencing: Math.round(newProfiles.sequencing),
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', user.id);
+    // Save to localStorage
+    const data = storage.getData();
+    data.puzzleAttempts.push(attempt);
+    data.profiles = {
+      patterns: Math.round(newProfiles.patterns),
+      spatial: Math.round(newProfiles.spatial),
+      logic: Math.round(newProfiles.logic),
+      lateral: Math.round(newProfiles.lateral),
+      sequencing: Math.round(newProfiles.sequencing)
+    };
+    storage.saveData(data);
 
     const updatedSession = {
       ...currentSession,
       puzzlesCompleted: currentSession.puzzlesCompleted + 1,
       totalScore: currentSession.totalScore + score,
-      attempts: [...currentSession.attempts, { ...attemptData, id: '', score }]
+      attempts: [...currentSession.attempts, { ...attemptData, id: attempt.id, score }]
     };
 
     const xpGained = Math.round(score / 2);
@@ -292,60 +283,44 @@ export const useGameStore = create<GameState>((set, get) => ({
   loadUserData: async (userId) => {
     set({ isLoading: true });
 
-    const { data: userData } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
+    const data = storage.getData();
 
-    const { data: companionData } = await supabase
-      .from('companions')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    const { data: profileData } = await supabase
-      .from('cognitive_profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (userData) {
+    if (data.user && data.user.id === userId) {
       set({
         user: {
-          id: userData.id,
-          username: userData.username,
-          tier: userData.tier as any,
-          subscriptionTier: userData.subscription_tier as any,
-          sessionsThisMonth: userData.sessions_this_month,
-          createdAt: userData.created_at,
-          lastPlayed: userData.last_played
+          id: data.user.id,
+          username: data.user.username,
+          tier: data.user.tier,
+          subscriptionTier: data.user.subscription_tier || 'free',
+          sessionsThisMonth: data.user.sessions_this_month || 0,
+          createdAt: data.user.created_at,
+          lastPlayed: data.user.last_played
         }
       });
     }
 
-    if (companionData) {
+    if (data.companion) {
       set({
         companion: {
-          id: companionData.id,
-          name: companionData.name,
-          personality: companionData.personality as any,
-          level: companionData.level,
-          xp: companionData.xp,
-          cosmetics: companionData.cosmetics,
+          id: data.companion.id,
+          name: data.companion.name,
+          personality: data.companion.personality,
+          level: data.companion.level,
+          xp: data.companion.xp,
+          cosmetics: data.companion.cosmetics,
           state: 'wondering'
         }
       });
     }
 
-    if (profileData) {
+    if (data.profiles) {
       set({
         profiles: {
-          patterns: profileData.patterns,
-          spatial: profileData.spatial,
-          logic: profileData.logic_score,
-          lateral: profileData.lateral_thinking,
-          sequencing: profileData.sequencing
+          patterns: data.profiles.patterns,
+          spatial: data.profiles.spatial,
+          logic: data.profiles.logic,
+          lateral: data.profiles.lateral,
+          sequencing: data.profiles.sequencing
         }
       });
     }
@@ -357,28 +332,26 @@ export const useGameStore = create<GameState>((set, get) => ({
     const { user, companion, profiles } = get();
     if (!user) return;
 
-    await supabase
-      .from('cognitive_profiles')
-      .update({
-        patterns: Math.round(profiles.patterns),
-        spatial: Math.round(profiles.spatial),
-        logic_score: Math.round(profiles.logic),
-        lateral_thinking: Math.round(profiles.lateral),
-        sequencing: Math.round(profiles.sequencing),
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', user.id);
+    const data = storage.getData();
+
+    data.profiles = {
+      patterns: Math.round(profiles.patterns),
+      spatial: Math.round(profiles.spatial),
+      logic: Math.round(profiles.logic),
+      lateral: Math.round(profiles.lateral),
+      sequencing: Math.round(profiles.sequencing)
+    };
 
     if (companion) {
-      await supabase
-        .from('companions')
-        .update({
-          level: companion.level,
-          xp: companion.xp,
-          cosmetics: companion.cosmetics
-        })
-        .eq('user_id', user.id);
+      data.companion = {
+        ...data.companion,
+        level: companion.level,
+        xp: companion.xp,
+        cosmetics: companion.cosmetics
+      };
     }
+
+    storage.saveData(data);
   },
 
   addCompanionXP: (amount) =>
@@ -404,82 +377,75 @@ export const useGameStore = create<GameState>((set, get) => ({
   initializeNewUser: async (username, tier, personality) => {
     set({ isLoading: true });
 
-    const { data: { user: authUser }, error: authError } = await supabase.auth.signUp({
-      email: `${username.toLowerCase().replace(/\s+/g, '')}@companion.local`,
-      password: crypto.randomUUID()
-    });
-
-    if (authError || !authUser) {
-      console.error('Auth error:', authError);
-      set({ isLoading: false });
-      return;
-    }
-
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .insert({
-        id: authUser.id,
-        username,
-        tier,
-        subscription_tier: 'free',
-        sessions_this_month: 0,
-        last_played: new Date().toISOString()
-      })
-      .select()
-      .maybeSingle();
-
-    if (userError || !userData) {
-      console.error('User creation error:', userError);
-      set({ isLoading: false });
-      return;
-    }
-
+    const userId = storage.generateId();
+    const companionId = storage.generateId();
     const companionName = `${username}'s Friend`;
+    const now = new Date().toISOString();
 
-    const { data: companionData } = await supabase
-      .from('companions')
-      .insert({
-        user_id: authUser.id,
-        name: companionName,
-        personality,
-        level: 1,
-        xp: 0
-      })
-      .select()
-      .maybeSingle();
+    const userData = {
+      id: userId,
+      username,
+      tier,
+      subscription_tier: 'free',
+      sessions_this_month: 0,
+      created_at: now,
+      last_played: now
+    };
 
-    await supabase.from('cognitive_profiles').insert({
-      user_id: authUser.id,
+    const companionData = {
+      id: companionId,
+      user_id: userId,
+      name: companionName,
+      personality,
+      level: 1,
+      xp: 0,
+      cosmetics: {
+        hat: 'none',
+        aura: 'none',
+        color: 'default',
+        idleAnimation: 'none'
+      },
+      created_at: now
+    };
+
+    const profileData = {
       patterns: 50,
       spatial: 50,
-      logic_score: 50,
-      lateral_thinking: 50,
+      logic: 50,
+      lateral: 50,
       sequencing: 50
+    };
+
+    // Save to localStorage
+    storage.saveData({
+      user: userData,
+      companion: companionData,
+      profiles: profileData,
+      sessions: [],
+      puzzleAttempts: []
     });
 
-    if (companionData) {
-      set({
-        user: {
-          id: userData.id,
-          username: userData.username,
-          tier: userData.tier as any,
-          subscriptionTier: 'free',
-          sessionsThisMonth: 0,
-          createdAt: userData.created_at,
-          lastPlayed: userData.last_played
-        },
-        companion: {
-          id: companionData.id,
-          name: companionData.name,
-          personality: companionData.personality as any,
-          level: 1,
-          xp: 0,
-          cosmetics: companionData.cosmetics,
-          state: 'wondering'
-        },
-        profiles: DEFAULT_PROFILES,
-        isLoading: false
-      });
-    }
+    set({
+      user: {
+        id: userData.id,
+        username: userData.username,
+        tier: userData.tier as any,
+        subscriptionTier: 'free',
+        sessionsThisMonth: 0,
+        createdAt: userData.created_at,
+        lastPlayed: userData.last_played
+      },
+      companion: {
+        id: companionData.id,
+        name: companionData.name,
+        personality: companionData.personality as any,
+        level: 1,
+        xp: 0,
+        cosmetics: companionData.cosmetics,
+        state: 'wondering'
+      },
+      profiles: DEFAULT_PROFILES,
+      isLoading: false
+    });
   }
 }));
