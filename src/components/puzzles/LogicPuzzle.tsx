@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { HelpCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { HelpCircle, Brain, Clock, Target } from 'lucide-react';
 import type { PuzzleConfig } from '../../types';
 import { useGameStore } from '../../store/gameStore';
 import seedrandom from 'seedrandom';
+import { casePuzzles } from '../../data/puzzles';
 
 interface Props {
   config: PuzzleConfig;
@@ -139,13 +140,25 @@ export function LogicPuzzle({ config, onComplete }: Props) {
   const [attempts, setAttempts] = useState(0);
   const [hints, setHints] = useState(0);
   const [startTime] = useState(Date.now());
+  const [elapsedTime, setElapsedTime] = useState(0);
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
+  const [showExplanation, setShowExplanation] = useState(false);
   const updateCompanionState = useGameStore(state => state.updateCompanionState);
+
+  // Get story context from puzzle data
+  const caseId = currentZone?.id || 1;
+  const casePuzzleData = casePuzzles[caseId]?.find(p => p.type === 'logic');
+  const storyContext = casePuzzleData?.storyContext || puzzle.story;
+  const explanation = casePuzzleData?.explanation || 'Correct deduction!';
 
   useEffect(() => {
     updateCompanionState('curious');
-  }, []);
+    const timer = setInterval(() => {
+      setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [startTime]);
 
   const handleAnswer = (index: number) => {
     setSelectedAnswer(index);
@@ -157,6 +170,7 @@ export function LogicPuzzle({ config, onComplete }: Props) {
 
     if (correct) {
       updateCompanionState('cheering');
+      setShowExplanation(true);
       setTimeout(() => {
         const timeTaken = Math.floor((Date.now() - startTime) / 1000);
         onComplete({
@@ -166,13 +180,13 @@ export function LogicPuzzle({ config, onComplete }: Props) {
           hintsUsed: hints,
           actualMoves: 1
         });
-      }, 1500);
+      }, 3000);
     } else {
       updateCompanionState('thinking');
       setTimeout(() => {
         setShowFeedback(false);
         setSelectedAnswer(null);
-      }, 1000);
+      }, 1200);
     }
   };
 
@@ -181,81 +195,176 @@ export function LogicPuzzle({ config, onComplete }: Props) {
     updateCompanionState('stuck');
   };
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-8 bg-gradient-to-br from-green-50 to-emerald-50">
+    <div className="flex flex-col items-center justify-center min-h-screen p-4 sm:p-8 bg-slate-900 relative overflow-hidden">
+      {/* Film grain overlay */}
+      <div className="absolute inset-0 opacity-[0.15] pointer-events-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxwYXRoIGQ9Ik0wIDBoMzAwdjMwMEgweiIgZmlsdGVyPSJ1cmwoI2EpIiBvcGFjaXR5PSIuMDUiLz48L3N2Zz4=')]"></div>
+
       <motion.div
-        className="bg-white rounded-3xl shadow-2xl p-8 max-w-3xl w-full"
+        className="bg-slate-800/90 backdrop-blur-md rounded-2xl shadow-2xl p-6 sm:p-8 max-w-4xl w-full border border-amber-900/30 relative"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-800 mb-2">Logic Puzzle</h2>
-          <p className="text-gray-600">Think carefully and solve the challenge</p>
+        {/* Header */}
+        <div className="mb-6 border-b border-amber-900/30 pb-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 bg-amber-600/20 rounded-lg border border-amber-600/30">
+              <Brain className="w-6 h-6 text-amber-400" />
+            </div>
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-amber-400 tracking-wide">DEDUCTION BOARD</h2>
+              <p className="text-slate-400 text-sm">Logical Reasoning Required</p>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="flex flex-wrap gap-4 mt-4 text-sm">
+            <div className="flex items-center gap-2 text-slate-300">
+              <Clock className="w-4 h-4 text-amber-500" />
+              <span className="font-mono">{formatTime(elapsedTime)}</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-300">
+              <Target className="w-4 h-4 text-amber-500" />
+              <span>Attempts: {attempts}</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-300">
+              <HelpCircle className="w-4 h-4 text-amber-500" />
+              <span>Hints Used: {hints}</span>
+            </div>
+          </div>
         </div>
 
+        {/* Story Context */}
         <motion.div
-          className="mb-8 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl"
+          className="mb-6 p-4 bg-gradient-to-br from-amber-900/20 to-slate-800/40 border border-amber-700/30 rounded-lg backdrop-blur-sm"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <div className="flex items-start gap-3">
+            <div className="text-2xl">📋</div>
+            <div>
+              <h3 className="text-amber-400 font-semibold mb-1 text-sm uppercase tracking-wide">Case Brief</h3>
+              <p className="text-slate-200 leading-relaxed italic">{storyContext}</p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Case Evidence */}
+        <motion.div
+          className="mb-6 p-6 bg-slate-900/50 rounded-xl border border-slate-700/50"
           initial={{ scale: 0.95 }}
           animate={{ scale: 1 }}
         >
-          <p className="text-lg text-gray-700 mb-4 leading-relaxed">{puzzle.story}</p>
-          <p className="text-xl font-semibold text-indigo-900">{puzzle.question}</p>
+          <h3 className="text-amber-400 text-sm font-semibold mb-3 uppercase tracking-wide">Case Evidence</h3>
+          <p className="text-lg text-slate-200 mb-4 leading-relaxed font-serif italic">{puzzle.story}</p>
+          <div className="mt-4 pt-4 border-t border-slate-700/50">
+            <p className="text-xl font-semibold text-amber-300">{puzzle.question}</p>
+          </div>
         </motion.div>
 
-        {hints > 0 && (
-          <motion.div
-            className="mb-6 p-4 bg-yellow-50 border-2 border-yellow-200 rounded-xl"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <p className="text-sm text-yellow-800">
-              <strong>Hint:</strong> Think about each option carefully. What makes the most logical sense?
-            </p>
-          </motion.div>
-        )}
-
-        <div className="space-y-3 mb-6">
-          {puzzle.options.map((option, index) => (
-            <motion.button
-              key={index}
-              onClick={() => !showFeedback && handleAnswer(index)}
-              className={`w-full p-4 rounded-xl border-4 text-left transition-all ${
-                selectedAnswer === index && showFeedback
-                  ? isCorrect
-                    ? 'border-green-500 bg-green-50'
-                    : 'border-red-500 bg-red-50'
-                  : 'border-gray-200 hover:border-indigo-400 hover:bg-indigo-50'
-              }`}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-              whileHover={{ scale: showFeedback ? 1 : 1.02 }}
-              whileTap={{ scale: showFeedback ? 1 : 0.98 }}
-              disabled={showFeedback}
+        {/* Hints */}
+        <AnimatePresence>
+          {hints > 0 && (
+            <motion.div
+              className="mb-6 p-4 bg-amber-900/20 border border-amber-700/40 rounded-lg backdrop-blur-sm"
+              initial={{ opacity: 0, y: -10, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: 'auto' }}
+              exit={{ opacity: 0, y: -10, height: 0 }}
             >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center font-bold text-indigo-600">
-                  {String.fromCharCode(65 + index)}
+              <div className="flex items-start gap-2">
+                <span className="text-lg">💡</span>
+                <div>
+                  <p className="text-amber-300 font-semibold text-sm mb-1">Detective's Note:</p>
+                  <p className="text-amber-100 text-sm">Think about each option carefully. What makes the most logical sense given the evidence? Consider timing, opportunity, and contradictions in statements.</p>
                 </div>
-                <div className="text-gray-800">{option}</div>
               </div>
-            </motion.button>
-          ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Answer Options */}
+        <div className="mb-6">
+          <h3 className="text-amber-400 text-sm font-semibold mb-3 uppercase tracking-wider">Your Deduction</h3>
+          <div className="space-y-3">
+            {puzzle.options.map((option, index) => (
+              <motion.button
+                key={index}
+                onClick={() => !showFeedback && handleAnswer(index)}
+                className={`w-full p-4 rounded-lg border-2 text-left transition-all backdrop-blur-sm ${
+                  selectedAnswer === index && showFeedback
+                    ? isCorrect
+                      ? 'border-green-500 bg-green-900/30 shadow-lg shadow-green-500/20'
+                      : 'border-red-500 bg-red-900/30 shadow-lg shadow-red-500/20'
+                    : 'border-slate-700 hover:border-amber-600 hover:bg-amber-900/10 bg-slate-800/50'
+                }`}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ scale: showFeedback ? 1 : 1.02, x: showFeedback ? 0 : 4 }}
+                whileTap={{ scale: showFeedback ? 1 : 0.98 }}
+                disabled={showFeedback}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg border ${
+                    selectedAnswer === index && showFeedback
+                      ? isCorrect
+                        ? 'bg-green-500 text-white border-green-400'
+                        : 'bg-red-500 text-white border-red-400'
+                      : 'bg-amber-900/30 text-amber-400 border-amber-700/30'
+                  }`}>
+                    {String.fromCharCode(65 + index)}
+                  </div>
+                  <div className="text-slate-200 flex-1">{option}</div>
+                  {selectedAnswer === index && showFeedback && (
+                    <div className={`text-2xl ${isCorrect ? 'text-green-400' : 'text-red-400'}`}>
+                      {isCorrect ? '✓' : '✗'}
+                    </div>
+                  )}
+                </div>
+              </motion.button>
+            ))}
+          </div>
         </div>
 
-        <div className="flex justify-between items-center">
-          <div className="flex gap-2">
-            <button
-              onClick={handleHint}
-              className="flex items-center gap-2 px-4 py-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-lg transition-colors"
+        {/* Explanation after solving */}
+        <AnimatePresence>
+          {showExplanation && (
+            <motion.div
+              className="mb-6 p-4 bg-gradient-to-br from-green-900/30 to-emerald-900/20 border border-green-700/40 rounded-lg backdrop-blur-sm"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
             >
-              <HelpCircle size={20} />
-              Hint ({hints})
-            </button>
-          </div>
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">✅</span>
+                <div>
+                  <p className="text-green-400 font-semibold mb-2">Case Solved!</p>
+                  <p className="text-green-100 text-sm leading-relaxed">{explanation}</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-          <div className="text-sm text-gray-500">
-            Attempts: {attempts}
+        {/* Actions */}
+        <div className="flex justify-between items-center pt-4 border-t border-slate-700/50">
+          <button
+            onClick={handleHint}
+            className="flex items-center gap-2 px-4 py-2 bg-amber-900/30 hover:bg-amber-900/50 text-amber-300 rounded-lg transition-all border border-amber-700/30 hover:border-amber-600/50"
+          >
+            <HelpCircle size={18} />
+            <span className="text-sm font-medium">Request Hint</span>
+          </button>
+
+          <div className="text-xs text-slate-500 italic">
+            Apply deductive reasoning...
           </div>
         </div>
       </motion.div>
