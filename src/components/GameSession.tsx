@@ -185,9 +185,9 @@ export function GameSession({ onComplete }: Props) {
       <CrimeScene
         caseId={sceneData.caseId}
         sceneDescription={sceneData.description}
-        clues={sceneData.clues}
+        investigations={sceneData.investigations}
         onComplete={handleCrimeSceneComplete}
-        requiredClues={sceneData.requiredClues}
+        requiredInvestigations={sceneData.requiredInvestigations}
       />
     );
   }
