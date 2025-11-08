@@ -66,11 +66,16 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Film grain effect */}
+      <div className="absolute inset-0 opacity-5 pointer-events-none"
+           style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 400 400\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")' }}
+      />
+
       <motion.div
-        className="bg-white rounded-3xl shadow-2xl p-8 max-w-2xl w-full"
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
+        className="bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-2xl p-10 max-w-2xl w-full border border-slate-700/50 relative z-10"
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
       >
         {step === 1 && (
           <motion.div
@@ -79,17 +84,27 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
             className="space-y-6"
           >
             <div className="text-center">
-              <h1 className="text-4xl font-bold text-gray-800 mb-2">
-                Detective Academy: Case Files
+              <div className="inline-block px-6 py-2 bg-amber-500/10 border border-amber-500/30 rounded-full mb-4">
+                <span className="text-amber-400 font-semibold tracking-wider text-sm uppercase">
+                  Welcome Detective
+                </span>
+              </div>
+              <h1 className="text-5xl font-bold text-white mb-3">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-200 via-amber-50 to-amber-200">
+                  Detective Academy
+                </span>
               </h1>
-              <p className="text-gray-600">
+              <h2 className="text-2xl font-light text-slate-300 mb-4">
+                Case Files
+              </h2>
+              <p className="text-slate-400 text-lg">
                 Master the art of investigation with your AI detective assistant
               </p>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-6">
               <label className="block">
-                <span className="text-sm font-medium text-gray-700 mb-2 block">
+                <span className="text-sm font-semibold text-slate-300 mb-3 block uppercase tracking-wide">
                   What's your detective name?
                 </span>
                 <input
@@ -97,7 +112,7 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Enter your name"
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none text-lg"
+                  className="w-full px-5 py-4 bg-slate-900/50 border-2 border-slate-600/50 rounded-xl focus:border-amber-500 focus:outline-none text-lg text-white placeholder-slate-500 transition-colors"
                   maxLength={20}
                 />
               </label>
@@ -105,7 +120,7 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
               <button
                 onClick={() => username.trim() && setStep(2)}
                 disabled={!username.trim()}
-                className="w-full py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl font-semibold text-lg hover:from-indigo-600 hover:to-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-4 bg-gradient-to-r from-amber-600 to-amber-500 text-white rounded-xl font-semibold text-lg hover:from-amber-500 hover:to-amber-400 transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-lg shadow-amber-900/30 hover:shadow-amber-900/50"
               >
                 Continue
               </button>
@@ -120,10 +135,15 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
             className="space-y-6"
           >
             <div className="text-center">
-              <h2 className="text-3xl font-bold text-gray-800 mb-2">
+              <div className="inline-block px-6 py-2 bg-amber-500/10 border border-amber-500/30 rounded-full mb-4">
+                <span className="text-amber-400 font-semibold tracking-wider text-sm uppercase">
+                  Step 2 of 3
+                </span>
+              </div>
+              <h2 className="text-3xl font-bold text-white mb-2">
                 Select Your Rank
               </h2>
-              <p className="text-gray-600">Choose your detective experience level</p>
+              <p className="text-slate-400">Choose your detective experience level</p>
             </div>
 
             <div className="space-y-3">
@@ -131,15 +151,27 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
                 <button
                   key={tier.id}
                   onClick={() => setSelectedTier(tier.id)}
-                  className={`w-full p-4 rounded-xl border-4 transition-all text-left ${
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left group ${
                     selectedTier === tier.id
-                      ? 'border-indigo-500 bg-indigo-50'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-amber-500 bg-amber-500/10 shadow-lg shadow-amber-900/20'
+                      : 'border-slate-600/50 bg-slate-900/50 hover:border-amber-500/50 hover:bg-slate-800/50'
                   }`}
                 >
-                  <div className="font-semibold text-lg text-gray-800">{tier.name}</div>
-                  <div className="text-sm text-indigo-600 font-medium">{tier.age}</div>
-                  <div className="text-sm text-gray-600 mt-1">{tier.description}</div>
+                  <div className={`font-semibold text-lg mb-1 ${
+                    selectedTier === tier.id ? 'text-white' : 'text-slate-200 group-hover:text-white'
+                  }`}>
+                    {tier.name}
+                  </div>
+                  <div className={`text-sm font-medium mb-2 ${
+                    selectedTier === tier.id ? 'text-amber-400' : 'text-slate-400 group-hover:text-amber-400'
+                  }`}>
+                    {tier.age}
+                  </div>
+                  <div className={`text-sm ${
+                    selectedTier === tier.id ? 'text-slate-300' : 'text-slate-400'
+                  }`}>
+                    {tier.description}
+                  </div>
                 </button>
               ))}
             </div>
@@ -147,13 +179,13 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
             <div className="flex gap-3">
               <button
                 onClick={() => setStep(1)}
-                className="flex-1 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all"
+                className="flex-1 py-3 border-2 border-slate-600/50 text-slate-300 rounded-xl font-semibold hover:bg-slate-800/50 hover:border-slate-500 transition-all"
               >
                 Back
               </button>
               <button
                 onClick={() => setStep(3)}
-                className="flex-1 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl font-semibold hover:from-indigo-600 hover:to-purple-600 transition-all"
+                className="flex-1 py-4 bg-gradient-to-r from-amber-600 to-amber-500 text-white rounded-xl font-semibold hover:from-amber-500 hover:to-amber-400 transition-all shadow-lg shadow-amber-900/30 hover:shadow-amber-900/50"
               >
                 Continue
               </button>
@@ -168,10 +200,15 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
             className="space-y-6"
           >
             <div className="text-center">
-              <h2 className="text-3xl font-bold text-gray-800 mb-2">
+              <div className="inline-block px-6 py-2 bg-amber-500/10 border border-amber-500/30 rounded-full mb-4">
+                <span className="text-amber-400 font-semibold tracking-wider text-sm uppercase">
+                  Step 3 of 3
+                </span>
+              </div>
+              <h2 className="text-3xl font-bold text-white mb-2">
                 Choose Your Assistant
               </h2>
-              <p className="text-gray-600">Select your AI detective partner</p>
+              <p className="text-slate-400">Select your AI detective partner</p>
             </div>
 
             <div className="space-y-3">
@@ -181,20 +218,30 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
                   <button
                     key={personality.id}
                     onClick={() => setSelectedPersonality(personality.id)}
-                    className={`w-full p-4 rounded-xl border-4 transition-all text-left flex items-center gap-4 ${
+                    className={`w-full p-5 rounded-xl border-2 transition-all text-left flex items-center gap-4 group ${
                       selectedPersonality === personality.id
-                        ? 'border-indigo-500 bg-indigo-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-amber-500 bg-amber-500/10 shadow-lg shadow-amber-900/20'
+                        : 'border-slate-600/50 bg-slate-900/50 hover:border-amber-500/50 hover:bg-slate-800/50'
                     }`}
                   >
                     <div
-                      className={`w-16 h-16 rounded-full bg-gradient-to-br ${personality.color} flex items-center justify-center`}
+                      className={`w-16 h-16 rounded-full bg-gradient-to-br ${personality.color} flex items-center justify-center shadow-lg transition-transform group-hover:scale-105 ${
+                        selectedPersonality === personality.id ? 'ring-2 ring-amber-500/50 ring-offset-2 ring-offset-slate-800' : ''
+                      }`}
                     >
                       <Icon size={32} className="text-white" />
                     </div>
                     <div className="flex-1">
-                      <div className="font-semibold text-lg text-gray-800">{personality.name}</div>
-                      <div className="text-sm text-gray-600 mt-1">{personality.description}</div>
+                      <div className={`font-semibold text-lg mb-1 ${
+                        selectedPersonality === personality.id ? 'text-white' : 'text-slate-200 group-hover:text-white'
+                      }`}>
+                        {personality.name}
+                      </div>
+                      <div className={`text-sm ${
+                        selectedPersonality === personality.id ? 'text-slate-300' : 'text-slate-400'
+                      }`}>
+                        {personality.description}
+                      </div>
                     </div>
                   </button>
                 );
@@ -204,7 +251,7 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
             <div className="flex gap-3">
               <button
                 onClick={() => setStep(2)}
-                className="flex-1 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all"
+                className="flex-1 py-3 border-2 border-slate-600/50 text-slate-300 rounded-xl font-semibold hover:bg-slate-800/50 hover:border-slate-500 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                 disabled={isLoading}
               >
                 Back
@@ -212,7 +259,7 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
               <button
                 onClick={handleComplete}
                 disabled={isLoading}
-                className="flex-1 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl font-semibold hover:from-indigo-600 hover:to-purple-600 transition-all disabled:opacity-50"
+                className="flex-1 py-4 bg-gradient-to-r from-amber-600 to-amber-500 text-white rounded-xl font-semibold hover:from-amber-500 hover:to-amber-400 transition-all shadow-lg shadow-amber-900/30 hover:shadow-amber-900/50 disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 {isLoading ? 'Creating...' : "Let's Go!"}
               </button>
