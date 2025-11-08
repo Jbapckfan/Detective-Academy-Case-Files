@@ -13,6 +13,7 @@ import type {
 } from '../types';
 import { adaptiveAlgorithm } from '../lib/adaptive-algorithm';
 import { storage } from '../lib/supabase';
+import { cases } from '../data/cases';
 
 interface GameState {
   user: User | null;
@@ -43,9 +44,20 @@ interface GameState {
   initializeNewUser: (username: string, tier: string, personality: string) => Promise<void>;
 }
 
+// Convert detective cases to Zone format
 const ZONES: Zone[] = [
+  ...cases.map(detectiveCase => ({
+    id: detectiveCase.id,
+    name: detectiveCase.title,
+    description: detectiveCase.hook,
+    setting: detectiveCase.setting,
+    story: detectiveCase.story,
+    theme: detectiveCase.theme,
+    unlocked: true
+  })),
+  // Keep original zones for backward compatibility
   {
-    id: 1,
+    id: 101,
     name: "The Missing Heirloom",
     description: "A priceless family diamond has vanished from a locked mansion",
     setting: "Victorian manor with secret passages and hidden clues",
@@ -58,7 +70,7 @@ const ZONES: Zone[] = [
     unlocked: true
   },
   {
-    id: 2,
+    id: 102,
     name: "The Museum Heist",
     description: "A famous painting stolen in broad daylight using laser security",
     setting: "Modern art museum with complex security systems",
@@ -71,7 +83,7 @@ const ZONES: Zone[] = [
     unlocked: true
   },
   {
-    id: 3,
+    id: 103,
     name: "The Corporate Conspiracy",
     description: "A CEO's mysterious death hides corporate fraud and betrayal",
     setting: "Glass-tower corporate office with digital evidence trails",
