@@ -15,6 +15,7 @@ import { crimeScenes } from '../data/crimeScenes';
 import { useCompanionDialogue } from '../hooks/useCompanionDialogue';
 import { useAchievements } from '../hooks/useAchievements';
 import { AchievementNotifications } from './AchievementNotification';
+import { DifficultyIndicator } from './DifficultyIndicator';
 import { soundEngine } from '../lib/soundEngine';
 
 interface Props {
@@ -285,13 +286,22 @@ function GameSessionComponent({ onComplete }: Props) {
       {/* Achievement Notifications */}
       <AchievementNotifications achievements={recentUnlocks} onDismiss={dismissUnlock} />
 
+      {/* Difficulty Indicator - Only show during actual puzzle solving */}
+      {!showBriefing && !showCrimeScene && !showCelebration && (
+        <DifficultyIndicator
+          adaptiveState={adaptiveState}
+          currentPuzzleIndex={puzzleIndex}
+          totalPuzzles={totalPuzzles}
+        />
+      )}
+
       <Companion
         message={currentMessage?.text ?? null}
         isHint={currentMessage?.isHint ?? false}
         onDismiss={clearMessage}
       />
 
-      <div className="fixed top-6 right-6 z-50 space-y-3">
+      <div className="fixed top-6 left-6 z-50 space-y-3">
         {/* Progress Tracker */}
         <div className="bg-white rounded-2xl shadow-lg p-4 min-w-[200px]">
           <div className="text-sm text-gray-600 mb-2">{currentZone.name}</div>
