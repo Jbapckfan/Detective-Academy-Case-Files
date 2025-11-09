@@ -1,19 +1,34 @@
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Play, User, Settings, BarChart3, Crown } from 'lucide-react';
+import { Play, User, Settings, BarChart3, Trophy } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
+import { SoundControls } from './SoundControls';
+import { soundEngine } from '../lib/soundEngine';
 
 interface Props {
   onStartGame: (zoneId: number) => void;
   onShowProfiles: () => void;
+  onShowAchievements: () => void;
 }
 
-export function MainMenu({ onStartGame, onShowProfiles }: Props) {
+export function MainMenu({ onStartGame, onShowProfiles, onShowAchievements }: Props) {
   const { user, companion, zones } = useGameStore();
+
+  // Start noir ambient music when menu loads
+  useEffect(() => {
+    soundEngine.startNoirAmbience();
+    return () => {
+      soundEngine.stopMusic();
+    };
+  }, []);
 
   if (!user || !companion) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8 relative overflow-hidden">
+      {/* Sound Controls */}
+      <SoundControls />
+
       {/* Film grain effect */}
       <div className="absolute inset-0 opacity-5 pointer-events-none"
            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 400 400\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")' }}
@@ -96,7 +111,12 @@ export function MainMenu({ onStartGame, onShowProfiles }: Props) {
                     </p>
 
                     <button
-                      onClick={() => onStartGame(zone.id)}
+                      onClick={() => {
+                        soundEngine.playClick();
+                        setTimeout(() => soundEngine.playPageTransition(), 100);
+                        onStartGame(zone.id);
+                      }}
+                      onMouseEnter={() => soundEngine.playHover()}
                       className="w-full py-3.5 bg-gradient-to-r from-amber-600 to-amber-500 text-white rounded-xl font-semibold hover:from-amber-500 hover:to-amber-400 transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-900/30 group-hover:shadow-amber-900/50"
                     >
                       <Play size={20} />
@@ -109,9 +129,13 @@ export function MainMenu({ onStartGame, onShowProfiles }: Props) {
           })}
         </div>
 
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           <motion.button
-            onClick={onShowProfiles}
+            onClick={() => {
+              soundEngine.playClick();
+              onShowProfiles();
+            }}
+            onMouseEnter={() => soundEngine.playHover()}
             className="p-6 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl shadow-lg hover:shadow-2xl hover:border-amber-500/50 transition-all flex items-center gap-4 group"
             whileHover={{ scale: 1.02, y: -2 }}
             whileTap={{ scale: 0.98 }}
@@ -126,6 +150,27 @@ export function MainMenu({ onStartGame, onShowProfiles }: Props) {
           </motion.button>
 
           <motion.button
+            onClick={() => {
+              soundEngine.playClick();
+              onShowAchievements();
+            }}
+            onMouseEnter={() => soundEngine.playHover()}
+            className="p-6 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl shadow-lg hover:shadow-2xl hover:border-amber-500/50 transition-all flex items-center gap-4 group"
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-900/30 group-hover:shadow-amber-900/50 transition-shadow">
+              <Trophy size={26} className="text-white" />
+            </div>
+            <div className="text-left">
+              <div className="font-semibold text-white text-lg">Achievements</div>
+              <div className="text-sm text-slate-400">Track your progress</div>
+            </div>
+          </motion.button>
+
+          <motion.button
+            onClick={() => soundEngine.playClick()}
+            onMouseEnter={() => soundEngine.playHover()}
             className="p-6 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl shadow-lg hover:shadow-2xl hover:border-amber-500/50 transition-all flex items-center gap-4 group"
             whileHover={{ scale: 1.02, y: -2 }}
             whileTap={{ scale: 0.98 }}
@@ -140,6 +185,8 @@ export function MainMenu({ onStartGame, onShowProfiles }: Props) {
           </motion.button>
 
           <motion.button
+            onClick={() => soundEngine.playClick()}
+            onMouseEnter={() => soundEngine.playHover()}
             className="p-6 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl shadow-lg hover:shadow-2xl hover:border-amber-500/50 transition-all flex items-center gap-4 group"
             whileHover={{ scale: 1.02, y: -2 }}
             whileTap={{ scale: 0.98 }}

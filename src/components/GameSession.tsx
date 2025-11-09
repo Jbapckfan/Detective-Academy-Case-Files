@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import { Companion } from './Companion';
@@ -9,9 +9,13 @@ import { MirrorPuzzle } from './puzzles/MirrorPuzzle';
 import { GearPuzzle } from './puzzles/GearPuzzle';
 import { LogicPuzzle } from './puzzles/LogicPuzzle';
 import { SpatialPuzzle } from './puzzles/SpatialPuzzle';
-import { Trophy, Star, ArrowRight } from 'lucide-react';
+import { Trophy, Star, ArrowRight, Lightbulb } from 'lucide-react';
 import type { PuzzleConfig } from '../types';
 import { crimeScenes } from '../data/crimeScenes';
+import { useCompanionDialogue } from '../hooks/useCompanionDialogue';
+import { useAchievements } from '../hooks/useAchievements';
+import { AchievementNotifications } from './AchievementNotification';
+import { soundEngine } from '../lib/soundEngine';
 
 interface Props {
   onComplete: () => void;
@@ -35,17 +39,62 @@ export function GameSession({ onComplete }: Props) {
   const [showCrimeScene, setShowCrimeScene] = useState(true);
   const [collectedEvidence, setCollectedEvidence] = useState<string[]>([]);
   const [sessionScore, setSessionScore] = useState(0);
+  const [puzzleStartTime, setPuzzleStartTime] = useState<number>(0);
+  const [wrongAttempts, setWrongAttempts] = useState(0);
+  const strugglingTimerRef = useRef<NodeJS.Timeout>();
+
+  const { currentMessage, triggerDialogue, requestHint, clearMessage, resetHints } = useCompanionDialogue(currentPuzzle?.type);
+  const { recentUnlocks, dismissUnlock, checkAchievements } = useAchievements();
+
+  // Check achievements after each puzzle completion
+  useEffect(() => {
+    if (currentSession) {
+      checkAchievements();
+    }
+  }, [currentSession, checkAchievements]);
 
   const totalPuzzles = adaptiveState?.nextPuzzles.length || 5;
   const isLastPuzzle = puzzleIndex >= totalPuzzles - 1;
 
+  // Trigger companion dialogue when puzzle starts
   useEffect(() => {
     if (adaptiveState && adaptiveState.nextPuzzles[puzzleIndex]) {
       const nextPuzzle = adaptiveState.nextPuzzles[puzzleIndex];
       useGameStore.getState().startPuzzle(nextPuzzle);
       setShowBriefing(true);
+      resetHints();
+      setWrongAttempts(0);
+      clearMessage();
     }
-  }, [puzzleIndex, adaptiveState]);
+  }, [puzzleIndex, adaptiveState, resetHints, clearMessage]);
+
+  // Trigger puzzle start dialogue when briefing completes
+  useEffect(() => {
+    if (!showBriefing && currentPuzzle && !showCrimeScene) {
+      setPuzzleStartTime(Date.now());
+      triggerDialogue('puzzle_start', true);
+
+      // Set up struggling detection timer (30 seconds)
+      strugglingTimerRef.current = setTimeout(() => {
+        if (wrongAttempts >= 2) {
+          triggerDialogue('struggling');
+        }
+      }, 30000);
+
+      return () => {
+        if (strugglingTimerRef.current) {
+          clearTimeout(strugglingTimerRef.current);
+        }
+      };
+    }
+  }, [showBriefing, showCrimeScene, currentPuzzle, triggerDialogue, wrongAttempts]);
+
+  // Detect struggling based on wrong attempts
+  useEffect(() => {
+    if (wrongAttempts >= 2 && !showBriefing) {
+      triggerDialogue('struggling');
+    }
+  }, [wrongAttempts, showBriefing, triggerDialogue]);
 
   const handlePuzzleComplete = async (data: {
     solved: boolean;
@@ -55,6 +104,11 @@ export function GameSession({ onComplete }: Props) {
     actualMoves: number;
   }) => {
     if (!currentPuzzle || !currentSession) return;
+
+    // Clear struggling timer
+    if (strugglingTimerRef.current) {
+      clearTimeout(strugglingTimerRef.current);
+    }
 
     await completePuzzle({
       puzzleType: currentPuzzle.type,
@@ -71,12 +125,29 @@ export function GameSession({ onComplete }: Props) {
     const score = data.solved ? Math.max(0, 100 - data.hintsUsed * 10 - data.attemptsUsed * 5) : 0;
     setSessionScore(prev => prev + score);
 
+    // Trigger appropriate companion dialogue and sounds
+    if (data.solved) {
+      if (data.timeTaken < 15 && data.hintsUsed === 0) {
+        soundEngine.playPerfect();
+        triggerDialogue('quick_solve', true);
+      } else if (data.hintsUsed === 0 && data.attemptsUsed === 0) {
+        soundEngine.playPerfect();
+        triggerDialogue('perfect_solve', true);
+      } else {
+        soundEngine.playSuccess();
+        triggerDialogue('success', true);
+      }
+    } else {
+      soundEngine.playError();
+      triggerDialogue('failure', true);
+    }
+
     if (isLastPuzzle) {
-      setShowCelebration(true);
+      setTimeout(() => setShowCelebration(true), 2000); // Give time for celebration message
     } else {
       setTimeout(() => {
         setPuzzleIndex(prev => prev + 1);
-      }, 1000);
+      }, 2000);
     }
   };
 
@@ -202,29 +273,59 @@ export function GameSession({ onComplete }: Props) {
     );
   }
 
+  const handleHintRequest = () => {
+    const hint = requestHint();
+    if (hint) {
+      setWrongAttempts(prev => prev + 1); // Count hint request as difficulty indicator
+    }
+  };
+
   return (
     <>
-      <Companion />
+      {/* Achievement Notifications */}
+      <AchievementNotifications achievements={recentUnlocks} onDismiss={dismissUnlock} />
 
-      <div className="fixed top-6 right-6 z-50 bg-white rounded-2xl shadow-lg p-4 min-w-[200px]">
-        <div className="text-sm text-gray-600 mb-2">{currentZone.name}</div>
-        <div className="flex items-center gap-2 mb-3">
-          {Array.from({ length: totalPuzzles }).map((_, i) => (
-            <div
-              key={i}
-              className={`flex-1 h-2 rounded-full ${
-                i < puzzleIndex
-                  ? 'bg-green-500'
-                  : i === puzzleIndex
-                  ? 'bg-indigo-500'
-                  : 'bg-gray-200'
-              }`}
-            />
-          ))}
+      <Companion
+        message={currentMessage?.text ?? null}
+        isHint={currentMessage?.isHint ?? false}
+        onDismiss={clearMessage}
+      />
+
+      <div className="fixed top-6 right-6 z-50 space-y-3">
+        {/* Progress Tracker */}
+        <div className="bg-white rounded-2xl shadow-lg p-4 min-w-[200px]">
+          <div className="text-sm text-gray-600 mb-2">{currentZone.name}</div>
+          <div className="flex items-center gap-2 mb-3">
+            {Array.from({ length: totalPuzzles }).map((_, i) => (
+              <div
+                key={i}
+                className={`flex-1 h-2 rounded-full ${
+                  i < puzzleIndex
+                    ? 'bg-green-500'
+                    : i === puzzleIndex
+                    ? 'bg-indigo-500'
+                    : 'bg-gray-200'
+                }`}
+              />
+            ))}
+          </div>
+          <div className="text-xs text-gray-500">
+            Puzzle {puzzleIndex + 1} of {totalPuzzles}
+          </div>
         </div>
-        <div className="text-xs text-gray-500">
-          Puzzle {puzzleIndex + 1} of {totalPuzzles}
-        </div>
+
+        {/* Hint Button */}
+        {!showBriefing && !showCrimeScene && currentPuzzle && (
+          <motion.button
+            onClick={handleHintRequest}
+            className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl px-4 py-3 font-semibold text-sm shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Lightbulb size={18} />
+            Get Hint
+          </motion.button>
+        )}
       </div>
 
       {currentPuzzle.type === 'sequence' && (

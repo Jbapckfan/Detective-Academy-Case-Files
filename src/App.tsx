@@ -3,9 +3,10 @@ import { Onboarding } from './components/Onboarding';
 import { MainMenu } from './components/MainMenu';
 import { GameSession } from './components/GameSession';
 import { ProfileDashboard } from './components/ProfileDashboard';
+import { AchievementsPage } from './components/AchievementsPage';
 import { useGameStore } from './store/gameStore';
 
-type Screen = 'onboarding' | 'menu' | 'game' | 'profiles';
+type Screen = 'onboarding' | 'menu' | 'game' | 'profiles' | 'achievements';
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('onboarding');
@@ -41,6 +42,10 @@ function App() {
     setCurrentScreen('profiles');
   };
 
+  const handleShowAchievements = () => {
+    setCurrentScreen('achievements');
+  };
+
   const handleBackToMenu = () => {
     setCurrentScreen('menu');
   };
@@ -64,12 +69,16 @@ function App() {
     return <ProfileDashboard onBack={handleBackToMenu} />;
   }
 
+  if (currentScreen === 'achievements') {
+    return <AchievementsPage onBack={handleBackToMenu} />;
+  }
+
   if (currentScreen === 'game') {
     return <GameSession onComplete={handleGameComplete} />;
   }
 
   return (
-    <MainMenu onStartGame={handleStartGame} onShowProfiles={handleShowProfiles} />
+    <MainMenu onStartGame={handleStartGame} onShowProfiles={handleShowProfiles} onShowAchievements={handleShowAchievements} />
   );
 }
 
