@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Lock, ArrowLeft, Sparkles } from 'lucide-react';
 import { useAchievements } from '../hooks/useAchievements';
@@ -19,7 +19,106 @@ const CATEGORY_INFO: Record<AchievementCategory, { name: string; icon: string; c
   companion: { name: 'Companion Bond', icon: '❤️', color: 'from-pink-500 to-rose-500' }
 };
 
-export function AchievementsPage({ onBack }: Props) {
+// Memoized Achievement Card Component
+const AchievementCard = memo(({ achievement, index }: { achievement: any; index: number }) => {
+  const colors = RARITY_COLORS[achievement.rarity];
+  const isUnlocked = achievement.unlocked;
+
+  return (
+    <motion.div
+      key={achievement.id}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ delay: index * 0.05 }}
+      className={`relative bg-gradient-to-br ${
+        isUnlocked ? colors.bg : 'from-slate-800 to-slate-700'
+      } border-2 ${
+        isUnlocked ? colors.border : 'border-slate-600'
+      } rounded-xl p-5 ${
+        isUnlocked ? `shadow-lg ${colors.glow}` : ''
+      } transition-all hover:scale-105`}
+    >
+      {/* Locked Overlay */}
+      {!isUnlocked && (
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-xl flex items-center justify-center z-10">
+          <Lock size={32} className="text-slate-400" />
+        </div>
+      )}
+
+      {/* Icon */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="text-5xl">{achievement.icon}</div>
+        {isUnlocked && (
+          <Trophy size={24} className={colors.text} />
+        )}
+      </div>
+
+      {/* Title & Rarity */}
+      <h3 className={`text-lg font-bold mb-1 ${isUnlocked ? colors.text : 'text-slate-300'}`}>
+        {achievement.name}
+      </h3>
+      <div className="flex items-center gap-2 mb-2">
+        <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold uppercase ${
+          isUnlocked ? `bg-white/30 ${colors.text}` : 'bg-slate-600 text-slate-400'
+        }`}>
+          <Sparkles size={10} />
+          {achievement.rarity}
+        </div>
+      </div>
+
+      {/* Description */}
+      <p className={`text-sm mb-3 ${isUnlocked ? colors.text + ' opacity-80' : 'text-slate-400'}`}>
+        {achievement.description}
+      </p>
+
+      {/* Progress Bar (if not unlocked) */}
+      {!isUnlocked && achievement.progress > 0 && (
+        <div className="mb-3">
+          <div className="flex justify-between text-xs text-slate-400 mb-1">
+            <span>Progress</span>
+            <span>{Math.round(achievement.progress)}%</span>
+          </div>
+          <div className="bg-slate-600 rounded-full h-2 overflow-hidden">
+            <motion.div
+              className="h-full bg-gradient-to-r from-amber-500 to-amber-400"
+              initial={{ width: 0 }}
+              animate={{ width: `${achievement.progress}%` }}
+              transition={{ duration: 0.5 }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Rewards */}
+      {achievement.reward && isUnlocked && (
+        <div className="flex gap-2 text-xs font-semibold">
+          {achievement.reward.xp && (
+            <span className={`px-2 py-1 rounded-lg bg-white/20 ${colors.text}`}>
+              +{achievement.reward.xp} XP
+            </span>
+          )}
+          {achievement.reward.companionXP && (
+            <span className={`px-2 py-1 rounded-lg bg-white/20 ${colors.text}`}>
+              +{achievement.reward.companionXP} 💕
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Unlocked Date */}
+      {isUnlocked && achievement.unlockedAt && (
+        <div className="text-xs text-slate-500 mt-2">
+          Unlocked {new Date(achievement.unlockedAt).toLocaleDateString()}
+        </div>
+      )}
+    </motion.div>
+  );
+});
+
+AchievementCard.displayName = 'AchievementCard';
+
+function AchievementsPageComponent({ onBack }: Props) {
   const {
     getAllAchievementsWithProgress,
     unlockedCount,
@@ -30,22 +129,28 @@ export function AchievementsPage({ onBack }: Props) {
   const [selectedCategory, setSelectedCategory] = useState<AchievementCategory | 'all'>('all');
   const [selectedRarity, setSelectedRarity] = useState<string>('all');
 
-  const allAchievements = getAllAchievementsWithProgress();
+  const allAchievements = getAllAchievementsWithProgress;
 
-  const filteredAchievements = allAchievements.filter(achievement => {
-    const categoryMatch = selectedCategory === 'all' || achievement.category === selectedCategory;
-    const rarityMatch = selectedRarity === 'all' || achievement.rarity === selectedRarity;
-    return categoryMatch && rarityMatch;
-  });
+  // Memoize filtered achievements
+  const filteredAchievements = useMemo(() => {
+    return allAchievements.filter(achievement => {
+      const categoryMatch = selectedCategory === 'all' || achievement.category === selectedCategory;
+      const rarityMatch = selectedRarity === 'all' || achievement.rarity === selectedRarity;
+      return categoryMatch && rarityMatch;
+    });
+  }, [allAchievements, selectedCategory, selectedRarity]);
 
-  // Group by category
-  const achievementsByCategory: Record<string, typeof filteredAchievements> = {};
-  filteredAchievements.forEach(achievement => {
-    if (!achievementsByCategory[achievement.category]) {
-      achievementsByCategory[achievement.category] = [];
-    }
-    achievementsByCategory[achievement.category].push(achievement);
-  });
+  // Group by category (memoized)
+  const achievementsByCategory = useMemo(() => {
+    const grouped: Record<string, typeof filteredAchievements> = {};
+    filteredAchievements.forEach(achievement => {
+      if (!grouped[achievement.category]) {
+        grouped[achievement.category] = [];
+      }
+      grouped[achievement.category].push(achievement);
+    });
+    return grouped;
+  }, [filteredAchievements]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8">
@@ -164,101 +269,13 @@ export function AchievementsPage({ onBack }: Props) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <AnimatePresence>
-                    {categoryAchievements.map((achievement, index) => {
-                      const colors = RARITY_COLORS[achievement.rarity];
-                      const isUnlocked = achievement.unlocked;
-
-                      return (
-                        <motion.div
-                          key={achievement.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                          transition={{ delay: index * 0.05 }}
-                          className={`relative bg-gradient-to-br ${
-                            isUnlocked ? colors.bg : 'from-slate-800 to-slate-700'
-                          } border-2 ${
-                            isUnlocked ? colors.border : 'border-slate-600'
-                          } rounded-xl p-5 ${
-                            isUnlocked ? `shadow-lg ${colors.glow}` : ''
-                          } transition-all hover:scale-105`}
-                        >
-                          {/* Locked Overlay */}
-                          {!isUnlocked && (
-                            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-xl flex items-center justify-center z-10">
-                              <Lock size={32} className="text-slate-400" />
-                            </div>
-                          )}
-
-                          {/* Icon */}
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="text-5xl">{achievement.icon}</div>
-                            {isUnlocked && (
-                              <Trophy size={24} className={colors.text} />
-                            )}
-                          </div>
-
-                          {/* Title & Rarity */}
-                          <h3 className={`text-lg font-bold mb-1 ${isUnlocked ? colors.text : 'text-slate-300'}`}>
-                            {achievement.name}
-                          </h3>
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold uppercase ${
-                              isUnlocked ? `bg-white/30 ${colors.text}` : 'bg-slate-600 text-slate-400'
-                            }`}>
-                              <Sparkles size={10} />
-                              {achievement.rarity}
-                            </div>
-                          </div>
-
-                          {/* Description */}
-                          <p className={`text-sm mb-3 ${isUnlocked ? colors.text + ' opacity-80' : 'text-slate-400'}`}>
-                            {achievement.description}
-                          </p>
-
-                          {/* Progress Bar (if not unlocked) */}
-                          {!isUnlocked && achievement.progress > 0 && (
-                            <div className="mb-3">
-                              <div className="flex justify-between text-xs text-slate-400 mb-1">
-                                <span>Progress</span>
-                                <span>{Math.round(achievement.progress)}%</span>
-                              </div>
-                              <div className="bg-slate-600 rounded-full h-2 overflow-hidden">
-                                <motion.div
-                                  className="h-full bg-gradient-to-r from-amber-500 to-amber-400"
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${achievement.progress}%` }}
-                                  transition={{ duration: 0.5 }}
-                                />
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Rewards */}
-                          {achievement.reward && isUnlocked && (
-                            <div className="flex gap-2 text-xs font-semibold">
-                              {achievement.reward.xp && (
-                                <span className={`px-2 py-1 rounded-lg bg-white/20 ${colors.text}`}>
-                                  +{achievement.reward.xp} XP
-                                </span>
-                              )}
-                              {achievement.reward.companionXP && (
-                                <span className={`px-2 py-1 rounded-lg bg-white/20 ${colors.text}`}>
-                                  +{achievement.reward.companionXP} 💕
-                                </span>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Unlocked Date */}
-                          {isUnlocked && achievement.unlockedAt && (
-                            <div className="text-xs text-slate-500 mt-2">
-                              Unlocked {new Date(achievement.unlockedAt).toLocaleDateString()}
-                            </div>
-                          )}
-                        </motion.div>
-                      );
-                    })}
+                    {categoryAchievements.map((achievement, index) => (
+                      <AchievementCard
+                        key={achievement.id}
+                        achievement={achievement}
+                        index={index}
+                      />
+                    ))}
                   </AnimatePresence>
                 </div>
               </div>
@@ -269,3 +286,5 @@ export function AchievementsPage({ onBack }: Props) {
     </div>
   );
 }
+
+export { AchievementsPageComponent as AchievementsPage };

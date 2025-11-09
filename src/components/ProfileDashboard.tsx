@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, TrendingUp } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
@@ -6,29 +7,29 @@ interface Props {
   onBack: () => void;
 }
 
-export function ProfileDashboard({ onBack }: Props) {
+function ProfileDashboardComponent({ onBack }: Props) {
   const { profiles, user, companion } = useGameStore();
 
-  const skills = [
+  const skills = useMemo(() => [
     { key: 'patterns', label: 'Pattern Recognition', color: '#ef4444' },
     { key: 'spatial', label: 'Spatial Reasoning', color: '#3b82f6' },
     { key: 'logic', label: 'Logic & Deduction', color: '#10b981' },
     { key: 'lateral', label: 'Lateral Thinking', color: '#f59e0b' },
     { key: 'sequencing', label: 'Sequential Planning', color: '#a855f7' }
-  ] as const;
+  ] as const, []);
 
-  const maxValue = Math.max(...Object.values(profiles));
-  const avgValue = Object.values(profiles).reduce((a, b) => a + b, 0) / 5;
+  const maxValue = useMemo(() => Math.max(...Object.values(profiles)), [profiles]);
+  const avgValue = useMemo(() => Object.values(profiles).reduce((a, b) => a + b, 0) / 5, [profiles]);
 
-  const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
+  const polarToCartesian = useMemo(() => (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
     const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
     return {
       x: centerX + radius * Math.cos(angleInRadians),
       y: centerY + radius * Math.sin(angleInRadians)
     };
-  };
+  }, []);
 
-  const createRadarPath = () => {
+  const createRadarPath = useMemo(() => {
     const center = 150;
     const maxRadius = 120;
     const angleStep = 360 / skills.length;
@@ -41,7 +42,7 @@ export function ProfileDashboard({ onBack }: Props) {
     });
 
     return `M ${points.map(p => `${p.x},${p.y}`).join(' L ')} Z`;
-  };
+  }, [skills, profiles, polarToCartesian]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
@@ -120,7 +121,7 @@ export function ProfileDashboard({ onBack }: Props) {
                 })}
 
                 <motion.path
-                  d={createRadarPath()}
+                  d={createRadarPath}
                   fill="rgba(99, 102, 241, 0.3)"
                   stroke="#6366f1"
                   strokeWidth="3"
@@ -244,3 +245,5 @@ export function ProfileDashboard({ onBack }: Props) {
     </div>
   );
 }
+
+export { ProfileDashboardComponent as ProfileDashboard };

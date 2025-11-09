@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { achievements, getAchievementProgress, isAchievementUnlocked, type Achievement, type UserAchievement } from '../data/achievements';
 import { storage } from '../lib/supabase';
@@ -187,8 +187,8 @@ export function useAchievements() {
     };
   }, [unlockedAchievements, userStats]);
 
-  // Get all achievements with progress
-  const getAllAchievementsWithProgress = useCallback(() => {
+  // Get all achievements with progress (memoized to prevent recalculation)
+  const getAllAchievementsWithProgress = useMemo(() => {
     return achievements.map(achievement => {
       const unlocked = unlockedAchievements.find(u => u.achievementId === achievement.id);
       const progress = unlocked ? 100 : getAchievementProgress(achievement, userStats);
@@ -212,6 +212,14 @@ export function useAchievements() {
     setRecentUnlocks(prev => prev.filter(u => u.achievement.id !== achievementId));
   }, []);
 
+  // Memoize computed values
+  const unlockedCount = useMemo(() => unlockedAchievements.length, [unlockedAchievements]);
+  const totalCount = useMemo(() => achievements.length, []);
+  const completionPercentage = useMemo(
+    () => (unlockedAchievements.length / achievements.length) * 100,
+    [unlockedAchievements.length]
+  );
+
   return {
     unlockedAchievements,
     recentUnlocks,
@@ -221,8 +229,8 @@ export function useAchievements() {
     checkAchievements,
     clearRecentUnlocks,
     dismissUnlock,
-    unlockedCount: unlockedAchievements.length,
-    totalCount: achievements.length,
-    completionPercentage: (unlockedAchievements.length / achievements.length) * 100
+    unlockedCount,
+    totalCount,
+    completionPercentage
   };
 }

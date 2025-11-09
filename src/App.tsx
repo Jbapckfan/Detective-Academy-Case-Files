@@ -1,12 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Onboarding } from './components/Onboarding';
 import { MainMenu } from './components/MainMenu';
-import { GameSession } from './components/GameSession';
-import { ProfileDashboard } from './components/ProfileDashboard';
-import { AchievementsPage } from './components/AchievementsPage';
 import { useGameStore } from './store/gameStore';
 
+// Lazy load heavy components
+const GameSession = lazy(() => import('./components/GameSession').then(m => ({ default: m.GameSession })));
+const ProfileDashboard = lazy(() => import('./components/ProfileDashboard').then(m => ({ default: m.ProfileDashboard })));
+const AchievementsPage = lazy(() => import('./components/AchievementsPage').then(m => ({ default: m.AchievementsPage })));
+
 type Screen = 'onboarding' | 'menu' | 'game' | 'profiles' | 'achievements';
+
+// Loading component for Suspense fallback
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-20 w-20 border-b-4 border-amber-500 mx-auto mb-4" />
+        <p className="text-white text-xl font-semibold">Loading...</p>
+      </div>
+    </div>
+  );
+}
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('onboarding');
@@ -66,15 +80,27 @@ function App() {
   }
 
   if (currentScreen === 'profiles') {
-    return <ProfileDashboard onBack={handleBackToMenu} />;
+    return (
+      <Suspense fallback={<LoadingScreen />}>
+        <ProfileDashboard onBack={handleBackToMenu} />
+      </Suspense>
+    );
   }
 
   if (currentScreen === 'achievements') {
-    return <AchievementsPage onBack={handleBackToMenu} />;
+    return (
+      <Suspense fallback={<LoadingScreen />}>
+        <AchievementsPage onBack={handleBackToMenu} />
+      </Suspense>
+    );
   }
 
   if (currentScreen === 'game') {
-    return <GameSession onComplete={handleGameComplete} />;
+    return (
+      <Suspense fallback={<LoadingScreen />}>
+        <GameSession onComplete={handleGameComplete} />
+      </Suspense>
+    );
   }
 
   return (

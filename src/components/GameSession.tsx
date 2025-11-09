@@ -21,7 +21,7 @@ interface Props {
   onComplete: () => void;
 }
 
-export function GameSession({ onComplete }: Props) {
+function GameSessionComponent({ onComplete }: Props) {
   const {
     currentSession,
     currentZone,
@@ -346,3 +346,5 @@ export function GameSession({ onComplete }: Props) {
     </>
   );
 }
+
+export { GameSessionComponent as GameSession };

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { generateSequencePuzzle } from '../../lib/puzzles/sequence-generator';
 import type { PuzzleConfig } from '../../types';
@@ -49,7 +49,14 @@ const COLOR_MAP: Record<string, string> = {
 
 export function SequencePuzzle({ config, onComplete }: Props) {
   const currentZone = useGameStore(state => state.currentZone);
-  const [puzzle] = useState(() => generateSequencePuzzle(config.seed, config.difficulty, currentZone?.id));
+  const updateCompanionState = useGameStore(state => state.updateCompanionState);
+
+  // Memoize puzzle generation to prevent re-computation
+  const puzzle = useMemo(
+    () => generateSequencePuzzle(config.seed, config.difficulty, currentZone?.id),
+    [config.seed, config.difficulty, currentZone?.id]
+  );
+
   const [selectedAnswer, setSelectedAnswer] = useState<string | number | null>(null);
   const [attempts, setAttempts] = useState(0);
   const [hints, setHints] = useState(0);
@@ -58,13 +65,16 @@ export function SequencePuzzle({ config, onComplete }: Props) {
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
-  const updateCompanionState = useGameStore(state => state.updateCompanionState);
 
-  // Get story context from puzzle data
-  const caseId = currentZone?.id || 1;
-  const casePuzzleData = casePuzzles[caseId]?.find(p => p.type === 'sequence');
-  const storyContext = casePuzzleData?.storyContext || 'Analyze the pattern to find the next element in the sequence.';
-  const explanation = casePuzzleData?.explanation || 'Pattern identified successfully!';
+  // Get story context from puzzle data (memoized)
+  const storyData = useMemo(() => {
+    const caseId = currentZone?.id || 1;
+    const casePuzzleData = casePuzzles[caseId]?.find(p => p.type === 'sequence');
+    return {
+      storyContext: casePuzzleData?.storyContext || 'Analyze the pattern to find the next element in the sequence.',
+      explanation: casePuzzleData?.explanation || 'Pattern identified successfully!'
+    };
+  }, [currentZone?.id]);
 
   useEffect(() => {
     updateCompanionState('curious');
@@ -72,9 +82,9 @@ export function SequencePuzzle({ config, onComplete }: Props) {
       setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
     }, 1000);
     return () => clearInterval(timer);
-  }, [startTime]);
+  }, [startTime, updateCompanionState]);
 
-  const handleAnswer = (answer: string | number) => {
+  const handleAnswer = useCallback((answer: string | number) => {
     setSelectedAnswer(answer);
     setAttempts(prev => prev + 1);
 
@@ -102,14 +112,14 @@ export function SequencePuzzle({ config, onComplete }: Props) {
         setSelectedAnswer(null);
       }, 1200);
     }
-  };
+  }, [puzzle.correctAnswer, attempts, hints, startTime, onComplete, updateCompanionState]);
 
-  const handleHint = () => {
+  const handleHint = useCallback(() => {
     setHints(prev => prev + 1);
     updateCompanionState('stuck');
-  };
+  }, [updateCompanionState]);
 
-  const renderElement = (element: string | number, index: number) => {
+  const renderElement = useCallback((element: string | number, index: number) => {
     if (typeof element === 'number') {
       return (
         <motion.div
@@ -207,13 +217,13 @@ export function SequencePuzzle({ config, onComplete }: Props) {
         {element}
       </motion.div>
     );
-  };
+  }, []);
 
-  const formatTime = (seconds: number) => {
+  const formatTime = useCallback((seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  }, []);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 sm:p-8 bg-slate-900 relative overflow-hidden">
@@ -265,7 +275,7 @@ export function SequencePuzzle({ config, onComplete }: Props) {
             <div className="text-2xl">🔍</div>
             <div>
               <h3 className="text-amber-400 font-semibold mb-1 text-sm uppercase tracking-wide">Case Evidence</h3>
-              <p className="text-slate-200 leading-relaxed italic">{storyContext}</p>
+              <p className="text-slate-200 leading-relaxed italic">{storyData.storyContext}</p>
             </div>
           </div>
         </motion.div>
@@ -362,7 +372,7 @@ export function SequencePuzzle({ config, onComplete }: Props) {
                 <span className="text-2xl">✅</span>
                 <div>
                   <p className="text-green-400 font-semibold mb-2">Case Breakthrough!</p>
-                  <p className="text-green-100 text-sm leading-relaxed">{explanation}</p>
+                  <p className="text-green-100 text-sm leading-relaxed">{storyData.explanation}</p>
                 </div>
               </div>
             </motion.div>
