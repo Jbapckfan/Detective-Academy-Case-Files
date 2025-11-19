@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <linearGradient id="brass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f8d076"/>
+      <stop offset="50%" stop-color="#d2923c"/>
+      <stop offset="100%" stop-color="#9f6b2f"/>
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="54" fill="url(#brass)" stroke="#3b2b14" stroke-width="6" opacity="0.95" />
+  <circle cx="60" cy="60" r="26" fill="#20160c" opacity="0.85" />
+  <circle cx="60" cy="60" r="14" fill="#f8d076" stroke="#3b2b14" stroke-width="3" />
+  <g stroke="#3b2b14" stroke-width="6" stroke-linecap="round">
+    <path d="M60 6v14"/>
+    <path d="M60 100v14"/>
+    <path d="M6 60h14"/>
+    <path d="M100 60h14"/>
+    <path d="M26 26l10 10"/>
+    <path d="M94 94l-10-10"/>
+    <path d="M94 26l-10 10"/>
+    <path d="M26 94l10-10"/>
+  </g>
+</svg>

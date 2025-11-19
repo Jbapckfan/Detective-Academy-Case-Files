@@ -13,7 +13,7 @@ import type {
 } from '../types';
 import { adaptiveAlgorithm } from '../lib/adaptive-algorithm';
 import { storage } from '../lib/supabase';
-import { cases } from '../data/cases';
+import { caseThemes, cases } from '../data/cases';
 
 interface GameState {
   user: User | null;
@@ -62,11 +62,7 @@ const ZONES: Zone[] = [
     description: "A priceless family diamond has vanished from a locked mansion",
     setting: "Victorian manor with secret passages and hidden clues",
     story: "Lady Ashworth's diamond necklace has disappeared from her bedroom safe. The room was locked from the inside, and only three people had keys. Your detective companion needs your analytical skills to crack this case by examining the evidence, analyzing timelines, and uncovering the truth.",
-    theme: {
-      primary: '#8b5cf6',
-      secondary: '#a78bfa',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-    },
+    theme: caseThemes[101],
     unlocked: true
   },
   {
@@ -75,11 +71,7 @@ const ZONES: Zone[] = [
     description: "A famous painting stolen in broad daylight using laser security",
     setting: "Modern art museum with complex security systems",
     story: "The 'Starry Night' was stolen from the Metropolitan Museum at 3 PM yesterday. Security footage shows nothing unusual, but the laser grid was somehow bypassed. Analyze the security logs, reconstruct the thief's path through the laser maze, and figure out how they disabled the vault's mechanical locks.",
-    theme: {
-      primary: '#ef4444',
-      secondary: '#f87171',
-      background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-    },
+    theme: caseThemes[102],
     unlocked: true
   },
   {
@@ -88,11 +80,7 @@ const ZONES: Zone[] = [
     description: "A CEO's mysterious death hides corporate fraud and betrayal",
     setting: "Glass-tower corporate office with digital evidence trails",
     story: "Tech CEO Marcus Chen was found dead in his locked penthouse office. Initial ruling: suicide. But his assistant claims he was about to expose massive fraud. Analyze financial records, decode encrypted messages, examine witness alibis, and reconstruct the crime scene to uncover a conspiracy that reaches the highest levels.",
-    theme: {
-      primary: '#0ea5e9',
-      secondary: '#38bdf8',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-    },
+    theme: caseThemes[103],
     unlocked: true
   }
 ];

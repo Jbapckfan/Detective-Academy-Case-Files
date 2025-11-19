@@ -5,6 +5,26 @@ export type PuzzleType = 'sequence' | 'mirror' | 'gear' | 'logic' | 'spatial';
 export type Difficulty = 'easy' | 'medium' | 'hard';
 export type CompanionState = 'wondering' | 'curious' | 'cheering' | 'thinking' | 'stuck' | 'celebrating' | 'bonding' | 'playful';
 
+export interface CaseTheme {
+  palette: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    highlight: string;
+  };
+  emojiSet: string[];
+  background: string;
+  textures: {
+    background: string;
+    surface: string;
+  };
+  assets: {
+    gear: string;
+    mirror: string;
+  };
+  glow: string;
+}
+
 export interface Cosmetics {
   hat: string;
   aura: string;
@@ -70,11 +90,7 @@ export interface Zone {
   description: string;
   setting: string;
   story: string;
-  theme: {
-    primary: string;
-    secondary: string;
-    background: string;
-  };
+  theme: CaseTheme;
   unlocked: boolean;
 }
 

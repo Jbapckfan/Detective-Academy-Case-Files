@@ -1,3 +1,52 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --texture-paper: url('./assets/paper-fiber.svg');
+  --texture-metal: url('./assets/metal-mesh.svg');
+  --texture-glass: url('./assets/glass-noise.svg');
+  --glow-color: #fbbf24;
+}
+
+.piece-snap {
+  animation: pieceSnap 240ms ease;
+}
+
+.piece-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.piece-shine::after {
+  content: '';
+  position: absolute;
+  inset: -120% -40%;
+  background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.45) 50%, transparent 60%);
+  transform: translateX(-10%) rotate(10deg);
+  animation: shineSweep 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.success-glow {
+  filter: drop-shadow(0 0 8px var(--glow-color)) drop-shadow(0 0 16px var(--glow-color));
+  animation: successPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pieceSnap {
+  0% { transform: scale(0.9); }
+  60% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+@keyframes shineSweep {
+  0% { transform: translateX(-80%) rotate(10deg); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translateX(120%) rotate(10deg); opacity: 0; }
+}
+
+@keyframes successPulse {
+  0% { filter: drop-shadow(0 0 6px var(--glow-color)); transform: scale(1); }
+  50% { filter: drop-shadow(0 0 16px var(--glow-color)); transform: scale(1.03); }
+  100% { filter: drop-shadow(0 0 6px var(--glow-color)); transform: scale(1); }
+}

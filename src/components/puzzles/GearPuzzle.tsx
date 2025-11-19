@@ -5,6 +5,7 @@ import type { PuzzleConfig } from '../../types';
 import { useGameStore } from '../../store/gameStore';
 import seedrandom from 'seedrandom';
 import { casePuzzles } from '../../data/puzzles';
+import { caseThemes } from '../../data/cases';
 
 interface Props {
   config: PuzzleConfig;
@@ -23,6 +24,8 @@ interface Gear {
 export function GearPuzzle({ config, onComplete }: Props) {
   const rng = seedrandom(config.seed);
   const currentZone = useGameStore(state => state.currentZone);
+  const theme = currentZone?.theme || caseThemes[1];
+  const glowStyle = { ['--glow-color' as any]: theme.glow };
   const [connections, setConnections] = useState<Set<string>>(new Set());
   const [turns, setTurns] = useState(0);
   const [hints, setHints] = useState(0);
@@ -40,6 +43,8 @@ export function GearPuzzle({ config, onComplete }: Props) {
   const storyContext = casePuzzleData?.storyContext || 'Connect the gears to unlock the mechanism.';
   const explanation = casePuzzleData?.explanation || 'Mechanism successfully unlocked!';
 
+  const gearPalette = [theme.palette.accent, theme.palette.highlight, theme.palette.secondary];
+
   const gears: Gear[] = Array.from({ length: numGears }).map((_, i) => {
     const angle = (360 / numGears) * i - 90;
     const radius = 150;
@@ -52,7 +57,7 @@ export function GearPuzzle({ config, onComplete }: Props) {
       y,
       size: 50 + (i === 0 ? 20 : 0),
       teeth: 12 + (i === 0 ? 4 : 0),
-      color: i === 0 ? '#f59e0b' : i === numGears - 1 ? '#10b981' : '#fbbf24'
+      color: gearPalette[i % gearPalette.length]
     };
   });
 
@@ -68,6 +73,7 @@ export function GearPuzzle({ config, onComplete }: Props) {
     const toothAngle = 360 / gear.teeth;
     const innerRadius = gear.size * 0.6;
     const outerRadius = gear.size;
+    const patternId = `gear-texture-${gear.id}`;
 
     const points = [];
     for (let i = 0; i < gear.teeth; i++) {
@@ -82,13 +88,19 @@ export function GearPuzzle({ config, onComplete }: Props) {
 
     return (
       <g transform={`translate(${gear.x}, ${gear.y}) rotate(${rotation})`}>
-        <circle cx="0" cy="0" r={gear.size} fill={gear.color} opacity="0.2" />
+        <defs>
+          <pattern id={patternId} patternUnits="objectBoundingBox" width="1" height="1">
+            <image href={theme.assets.gear} width={gear.size * 2} height={gear.size * 2} x="-50%" y="-50%" opacity="0.9" />
+          </pattern>
+        </defs>
+        <circle cx="0" cy="0" r={gear.size} fill={`url(#${patternId})`} opacity="0.35" />
         <polygon
           points={points.join(' ')}
+          className="piece-shine piece-snap"
           fill={gear.color}
-          stroke="#1e293b"
+          stroke={theme.palette.primary}
           strokeWidth="2"
-          style={{ filter: 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.3))' }}
+          style={{ filter: `drop-shadow(0 0 8px ${theme.palette.accent}55)` }}
         />
         <circle cx="0" cy="0" r={gear.size * 0.3} fill="#1e293b" />
         <circle cx="0" cy="0" r={gear.size * 0.15} fill={gear.color} />
@@ -187,45 +199,59 @@ export function GearPuzzle({ config, onComplete }: Props) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const chainConnected = isChainComplete();
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 sm:p-8 bg-slate-900 relative overflow-hidden">
+    <div
+      className="flex flex-col items-center justify-center min-h-screen p-4 sm:p-8 relative overflow-hidden"
+      style={{ backgroundImage: `${theme.background}, url(${theme.textures.background})` }}
+    >
       {/* Film grain overlay */}
       <div className="absolute inset-0 opacity-[0.15] pointer-events-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxwYXRoIGQ9Ik0wIDBoMzAwdjMwMEgweiIgZmlsdGVyPSJ1cmwoI2EpIiBvcGFjaXR5PSIuMDUiLz48L3N2Zz4=')]"></div>
 
       <motion.div
-        className="bg-slate-800/90 backdrop-blur-md rounded-2xl shadow-2xl p-6 sm:p-8 max-w-4xl w-full border border-amber-900/30 relative"
+        className="backdrop-blur-md rounded-2xl shadow-2xl p-6 sm:p-8 max-w-4xl w-full relative"
+        style={{
+          backgroundImage: `linear-gradient(145deg, ${theme.palette.primary}, ${theme.palette.secondary})`,
+          border: `1px solid ${theme.palette.accent}55`,
+          boxShadow: `0 20px 40px ${theme.palette.primary}55`
+        }}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
         {/* Header */}
-        <div className="mb-6 border-b border-amber-900/30 pb-4">
+        <div className="mb-6 border-b pb-4" style={{ borderColor: `${theme.palette.accent}55` }}>
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 bg-amber-600/20 rounded-lg border border-amber-600/30">
-              <Settings className="w-6 h-6 text-amber-400" />
+            <div
+              className="p-2 rounded-lg border"
+              style={{ background: `${theme.palette.accent}22`, borderColor: `${theme.palette.accent}55` }}
+            >
+              <Settings className="w-6 h-6" style={{ color: theme.palette.highlight }} />
             </div>
             <div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-amber-400 tracking-wide">MECHANISM ANALYSIS</h2>
-              <p className="text-slate-400 text-sm">Gear System Decryption</p>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-wide" style={{ color: theme.palette.highlight }}>MECHANISM ANALYSIS</h2>
+              <p className="text-slate-100/80 text-sm">Gear System Decryption</p>
             </div>
           </div>
 
           {/* Stats */}
           <div className="flex flex-wrap gap-4 mt-4 text-sm">
-            <div className="flex items-center gap-2 text-slate-300">
-              <Clock className="w-4 h-4 text-amber-500" />
+            <div className="flex items-center gap-2 text-slate-100/80">
+              <Clock className="w-4 h-4" style={{ color: theme.palette.accent }} />
               <span className="font-mono">{formatTime(elapsedTime)}</span>
             </div>
-            <div className="flex items-center gap-2 text-slate-300">
-              <Target className="w-4 h-4 text-amber-500" />
+            <div className="flex items-center gap-2 text-slate-100/80">
+              <Target className="w-4 h-4" style={{ color: theme.palette.accent }} />
               <span>Turns: {turns}/{targetTurns}</span>
             </div>
-            <div className="flex items-center gap-2 text-slate-300">
-              <HelpCircle className="w-4 h-4 text-amber-500" />
+            <div className="flex items-center gap-2 text-slate-100/80">
+              <HelpCircle className="w-4 h-4" style={{ color: theme.palette.accent }} />
               <span>Hints Used: {hints}</span>
             </div>
-            {isChainComplete() && (
+            {chainConnected && (
               <motion.div
-                className="flex items-center gap-2 text-green-400 font-semibold"
+                className="flex items-center gap-2 font-semibold success-glow"
+                style={glowStyle}
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
               >
@@ -238,7 +264,11 @@ export function GearPuzzle({ config, onComplete }: Props) {
 
         {/* Story Context */}
         <motion.div
-          className="mb-6 p-4 bg-gradient-to-br from-amber-900/20 to-slate-800/40 border border-amber-700/30 rounded-lg backdrop-blur-sm"
+          className="mb-6 p-4 rounded-lg backdrop-blur-sm"
+          style={{
+            backgroundImage: `linear-gradient(135deg, ${theme.palette.secondary}33, ${theme.palette.accent}22)`,
+            border: `1px solid ${theme.palette.accent}55`
+          }}
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
@@ -246,15 +276,23 @@ export function GearPuzzle({ config, onComplete }: Props) {
           <div className="flex items-start gap-3">
             <div className="text-2xl">⚙️</div>
             <div>
-              <h3 className="text-amber-400 font-semibold mb-1 text-sm uppercase tracking-wide">Case Evidence</h3>
-              <p className="text-slate-200 leading-relaxed italic">{storyContext}</p>
+              <h3 className="font-semibold mb-1 text-sm uppercase tracking-wide" style={{ color: theme.palette.highlight }}>Case Evidence</h3>
+              <p className="text-slate-100 leading-relaxed italic">{storyContext}</p>
             </div>
           </div>
         </motion.div>
 
         {/* Gear mechanism */}
         <div className="mb-6 flex justify-center">
-          <svg width="500" height="400" className="bg-slate-950/50 rounded-xl border border-slate-700/50">
+          <svg
+            width="500"
+            height="400"
+            className="rounded-xl border"
+            style={{
+              backgroundImage: `linear-gradient(135deg, ${theme.palette.primary}66, ${theme.palette.secondary}55), url(${theme.textures.surface})`,
+              borderColor: `${theme.palette.accent}55`
+            }}
+          >
             {/* Connection lines */}
             {Array.from(connections).map(key => {
               const [from, to] = key.split('-').map(Number);
@@ -328,7 +366,13 @@ export function GearPuzzle({ config, onComplete }: Props) {
           </svg>
         </div>
 
-        <div className="mb-4 text-center p-3 bg-slate-900/30 rounded-lg border border-slate-700/30">
+        <div
+          className="mb-4 text-center p-3 rounded-lg border"
+          style={{
+            background: `${theme.palette.primary}44`,
+            borderColor: `${theme.palette.accent}55`
+          }}
+        >
           <p className="text-sm text-slate-300">
             <span className="text-amber-400">Click gears</span> to connect them • <span className="text-green-400">Orange gear (start)</span> → <span className="text-emerald-400">Green gear (finish)</span>
           </p>
@@ -338,7 +382,11 @@ export function GearPuzzle({ config, onComplete }: Props) {
         <AnimatePresence>
           {hints > 0 && (
             <motion.div
-              className="mb-6 p-4 bg-amber-900/20 border border-amber-700/40 rounded-lg backdrop-blur-sm"
+              className="mb-6 p-4 rounded-lg backdrop-blur-sm"
+              style={{
+                backgroundImage: `linear-gradient(135deg, ${theme.palette.secondary}33, ${theme.palette.accent}22)`,
+                border: `1px dashed ${theme.palette.accent}77`
+              }}
               initial={{ opacity: 0, y: -10, height: 0 }}
               animate={{ opacity: 1, y: 0, height: 'auto' }}
               exit={{ opacity: 0, y: -10, height: 0 }}
@@ -346,8 +394,8 @@ export function GearPuzzle({ config, onComplete }: Props) {
               <div className="flex items-start gap-2">
                 <span className="text-lg">💡</span>
                 <div>
-                  <p className="text-amber-300 font-semibold text-sm mb-1">Detective's Note:</p>
-                  <p className="text-amber-100 text-sm">Connect gears in a chain from the orange start gear to the green finish gear. Once connected, turn the crank enough times to unlock the mechanism. When gears mesh, they rotate in opposite directions!</p>
+                  <p className="font-semibold text-sm mb-1" style={{ color: theme.palette.highlight }}>Detective's Note:</p>
+                  <p className="text-slate-100 text-sm">Connect gears in a chain from the start gear to the finish gear. Once connected, turn the crank enough times to unlock the mechanism. When gears mesh, they rotate in opposite directions!</p>
                 </div>
               </div>
             </motion.div>
@@ -359,22 +407,38 @@ export function GearPuzzle({ config, onComplete }: Props) {
           <div className="flex gap-2">
             <button
               onClick={handleHint}
-              className="flex items-center gap-2 px-4 py-2 bg-amber-900/30 hover:bg-amber-900/50 text-amber-300 rounded-lg transition-all border border-amber-700/30 hover:border-amber-600/50"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all"
+              style={{
+                background: `${theme.palette.accent}22`,
+                border: `1px solid ${theme.palette.accent}66`,
+                color: theme.palette.highlight
+              }}
             >
               <HelpCircle size={18} />
               <span className="text-sm font-medium">Request Hint</span>
             </button>
             <button
               onClick={handleReset}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-700/30 hover:bg-slate-700/50 text-slate-300 rounded-lg transition-all border border-slate-600/30 hover:border-slate-500/50"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all"
+              style={{
+                background: `${theme.palette.secondary}22`,
+                border: `1px solid ${theme.palette.secondary}66`,
+                color: '#e2e8f0'
+              }}
             >
               <RotateCcw size={18} />
               <span className="text-sm font-medium">Reset</span>
             </button>
             <button
               onClick={handleTurn}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-900/30 hover:bg-blue-900/50 text-blue-300 rounded-lg transition-all border border-blue-700/30 hover:border-blue-600/50 font-semibold"
-              disabled={!isChainComplete()}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-semibold"
+              style={{
+                background: `${theme.palette.accent}33`,
+                border: `1px solid ${theme.palette.accent}77`,
+                color: theme.palette.highlight,
+                opacity: chainConnected ? 1 : 0.6
+              }}
+              disabled={!chainConnected}
             >
               <Play size={18} />
               <span className="text-sm font-medium">Turn Crank</span>
@@ -383,7 +447,12 @@ export function GearPuzzle({ config, onComplete }: Props) {
 
           <button
             onClick={handleSolve}
-            className="px-6 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded-lg font-semibold transition-all flex items-center gap-2 shadow-lg border border-amber-500/30"
+            className="px-6 py-2 text-white rounded-lg font-semibold transition-all flex items-center gap-2 shadow-lg border success-glow"
+            style={{
+              backgroundImage: `linear-gradient(145deg, ${theme.palette.accent}, ${theme.palette.highlight})`,
+              borderColor: `${theme.palette.accent}88`,
+              ...glowStyle
+            }}
           >
             <Check size={20} />
             <span>Verify Solution</span>
