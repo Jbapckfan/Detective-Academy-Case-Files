@@ -53,6 +53,7 @@ const ZONES: Zone[] = [
     setting: detectiveCase.setting,
     story: detectiveCase.story,
     theme: detectiveCase.theme,
+    puzzleMix: detectiveCase.puzzleMix,
     unlocked: true
   })),
   // Keep original zones for backward compatibility
@@ -111,7 +112,8 @@ const DEFAULT_SETTINGS: Settings = {
   textSize: 'normal',
   colorblindMode: 'none',
   textToSpeech: false,
-  reducedMotion: false
+  reducedMotion: false,
+  hardMode: false
 };
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -152,6 +154,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     const zone = ZONES.find(z => z.id === zoneId);
     if (!zone) return;
 
+    const detectiveCase = cases.find(c => c.id === zoneId);
+
     const session: Session = {
       id: storage.generateId(),
       zoneId: zoneId,
@@ -167,7 +171,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     storage.saveData(data);
 
     const tier = user.tier;
-    const adaptiveState = adaptiveAlgorithm.generateAdaptiveState(profiles, tier, 0);
+    const adaptiveState = adaptiveAlgorithm.generateAdaptiveState(profiles, tier, 0, detectiveCase?.puzzleMix);
 
     set({
       currentSession: session,

@@ -1,7 +1,14 @@
 export type Tier = 'jr-detective' | 'detective' | 'master-detective';
 export type SubscriptionTier = 'free' | 'paid';
 export type Personality = 'owl' | 'fox' | 'robot';
-export type PuzzleType = 'sequence' | 'mirror' | 'gear' | 'logic' | 'spatial';
+export type PuzzleType =
+  | 'sequence'
+  | 'mirror'
+  | 'gear'
+  | 'logic'
+  | 'spatial'
+  | 'timeline'
+  | 'cipher';
 export type Difficulty = 'easy' | 'medium' | 'hard';
 export type CompanionState = 'wondering' | 'curious' | 'cheering' | 'thinking' | 'stuck' | 'celebrating' | 'bonding' | 'playful';
 
@@ -76,6 +83,7 @@ export interface Zone {
     background: string;
   };
   unlocked: boolean;
+  puzzleMix?: PuzzleType[];
 }
 
 export interface PuzzleConfig {
@@ -102,6 +110,7 @@ export interface Settings {
   colorblindMode: 'none' | 'deuteranopia' | 'protanopia' | 'tritanopia';
   textToSpeech: boolean;
   reducedMotion: boolean;
+  hardMode: boolean;
 }
 
 export interface SequencePuzzleData {
@@ -183,6 +192,28 @@ export interface SpatialPuzzleData {
   object: SpatialObject;
   targetOrientation: Orientation;
   allowedAxes: ('x' | 'y' | 'z')[];
+}
+
+export interface TimelinePuzzleData {
+  events: TimelineEvent[];
+  correctOrder: string[];
+  decoys?: TimelineEvent[];
+}
+
+export interface TimelineEvent {
+  id: string;
+  description: string;
+  clue?: string;
+  timeHint?: string;
+}
+
+export interface CipherPuzzleData {
+  cipherText: string;
+  alphabetKey: Record<string, string>;
+  clue: string;
+  options: string[];
+  correctAnswer: string;
+  decoySymbols?: string[];
 }
 
 export interface SpatialObject {
