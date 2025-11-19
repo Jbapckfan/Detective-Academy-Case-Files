@@ -39,6 +39,14 @@ const PUZZLE_SKILL_MAPPING: Record<PuzzleType, { primary: keyof CognitiveProfile
   spatial: {
     primary: 'spatial',
     secondary: { patterns: 0.2 }
+  },
+  timeline: {
+    primary: 'sequencing',
+    secondary: { logic: 0.3, patterns: 0.2 }
+  },
+  cipher: {
+    primary: 'patterns',
+    secondary: { lateral: 0.4, logic: 0.2 }
   }
 };
 
@@ -110,7 +118,8 @@ export class AdaptiveAlgorithm {
     profiles: CognitiveProfiles,
     tier: Tier,
     sessionProgression: number,
-    count: number = 5
+    count: number = 5,
+    allowedTypes?: PuzzleType[]
   ): PuzzleConfig[] {
     const skills: (keyof CognitiveProfiles)[] = ['patterns', 'spatial', 'logic', 'lateral', 'sequencing'];
     const sortedByStrength = skills
@@ -123,7 +132,11 @@ export class AdaptiveAlgorithm {
       .map(s => s.skill);
     const strongestSkill = sortedByStrength[sortedByStrength.length - 1].skill;
 
-    const puzzleTypes: PuzzleType[] = ['sequence', 'mirror', 'gear', 'logic', 'spatial'];
+    const availableTypes: PuzzleType[] = ['sequence', 'mirror', 'gear', 'logic', 'spatial', 'timeline', 'cipher'];
+    const filteredTypes = allowedTypes?.length
+      ? availableTypes.filter(type => allowedTypes.includes(type as PuzzleType))
+      : availableTypes;
+    const puzzleTypes: PuzzleType[] = filteredTypes.length ? filteredTypes : availableTypes;
 
     const getTypeForSkill = (skill: keyof CognitiveProfiles): PuzzleType | null => {
       for (const [type, mapping] of Object.entries(PUZZLE_SKILL_MAPPING)) {
@@ -182,7 +195,9 @@ export class AdaptiveAlgorithm {
       mirror: { easy: 2, medium: 4, hard: 7 },
       gear: { easy: 3, medium: 5, hard: 8 },
       logic: { easy: 1, medium: 3, hard: 5 },
-      spatial: { easy: 2, medium: 4, hard: 6 }
+      spatial: { easy: 2, medium: 4, hard: 6 },
+      timeline: { easy: 2, medium: 3, hard: 4 },
+      cipher: { easy: 1, medium: 2, hard: 3 }
     };
     return baseMoves[type][difficulty];
   }
@@ -190,7 +205,8 @@ export class AdaptiveAlgorithm {
   generateAdaptiveState(
     profiles: CognitiveProfiles,
     tier: Tier,
-    sessionProgression: number
+    sessionProgression: number,
+    allowedTypes?: PuzzleType[]
   ): AdaptiveState {
     const skills: (keyof CognitiveProfiles)[] = ['patterns', 'spatial', 'logic', 'lateral', 'sequencing'];
     const sortedByStrength = skills
@@ -199,7 +215,7 @@ export class AdaptiveAlgorithm {
 
     return {
       profiles,
-      nextPuzzles: this.selectNextPuzzles(profiles, tier, sessionProgression),
+      nextPuzzles: this.selectNextPuzzles(profiles, tier, sessionProgression, 5, allowedTypes),
       weakestSkill: sortedByStrength[0].skill,
       strongestSkill: sortedByStrength[sortedByStrength.length - 1].skill,
       sessionProgression

@@ -9,6 +9,8 @@ import { MirrorPuzzle } from './puzzles/MirrorPuzzle';
 import { GearPuzzle } from './puzzles/GearPuzzle';
 import { LogicPuzzle } from './puzzles/LogicPuzzle';
 import { SpatialPuzzle } from './puzzles/SpatialPuzzle';
+import { TimelinePuzzle } from './puzzles/TimelinePuzzle';
+import { CipherPuzzle } from './puzzles/CipherPuzzle';
 import { Trophy, Star, ArrowRight, Lightbulb } from 'lucide-react';
 import type { PuzzleConfig } from '../types';
 import { crimeScenes } from '../data/crimeScenes';
@@ -352,6 +354,12 @@ function GameSessionComponent({ onComplete }: Props) {
       )}
       {currentPuzzle.type === 'spatial' && (
         <SpatialPuzzle config={currentPuzzle} onComplete={handlePuzzleComplete} />
+      )}
+      {currentPuzzle.type === 'timeline' && (
+        <TimelinePuzzle config={currentPuzzle} onComplete={handlePuzzleComplete} />
+      )}
+      {currentPuzzle.type === 'cipher' && (
+        <CipherPuzzle config={currentPuzzle} onComplete={handlePuzzleComplete} />
       )}
     </>
   );

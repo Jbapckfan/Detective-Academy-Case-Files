@@ -24,7 +24,7 @@ function LoadingScreen() {
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('onboarding');
-  const { user, companion, isLoading } = useGameStore();
+  const { user, companion, isLoading, settings, updateSettings } = useGameStore();
 
   useEffect(() => {
     const existingUserId = localStorage.getItem('companion_user_id');
@@ -64,6 +64,26 @@ function App() {
     setCurrentScreen('menu');
   };
 
+  const toggleHardMode = () => {
+    updateSettings({ hardMode: !settings.hardMode });
+  };
+
+  const hardModeToggle = user && companion ? (
+    <div className="fixed top-4 right-4 z-50">
+      <button
+        onClick={toggleHardMode}
+        className={`px-4 py-2 rounded-full shadow-lg text-sm font-semibold transition-all border ${
+          settings.hardMode
+            ? 'bg-amber-600 text-white border-amber-500'
+            : 'bg-white/80 text-slate-800 border-slate-200'
+        }`}
+      >
+        {settings.hardMode ? 'Hard Mode: On' : 'Hard Mode: Off'}
+      </button>
+      <p className="text-xs text-white/80 mt-1 drop-shadow">Fewer clues & more decoys</p>
+    </div>
+  ) : null;
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-500">
@@ -81,30 +101,42 @@ function App() {
 
   if (currentScreen === 'profiles') {
     return (
-      <Suspense fallback={<LoadingScreen />}>
-        <ProfileDashboard onBack={handleBackToMenu} />
-      </Suspense>
+      <>
+        {hardModeToggle}
+        <Suspense fallback={<LoadingScreen />}>
+          <ProfileDashboard onBack={handleBackToMenu} />
+        </Suspense>
+      </>
     );
   }
 
   if (currentScreen === 'achievements') {
     return (
-      <Suspense fallback={<LoadingScreen />}>
-        <AchievementsPage onBack={handleBackToMenu} />
-      </Suspense>
+      <>
+        {hardModeToggle}
+        <Suspense fallback={<LoadingScreen />}>
+          <AchievementsPage onBack={handleBackToMenu} />
+        </Suspense>
+      </>
     );
   }
 
   if (currentScreen === 'game') {
     return (
-      <Suspense fallback={<LoadingScreen />}>
-        <GameSession onComplete={handleGameComplete} />
-      </Suspense>
+      <>
+        {hardModeToggle}
+        <Suspense fallback={<LoadingScreen />}>
+          <GameSession onComplete={handleGameComplete} />
+        </Suspense>
+      </>
     );
   }
 
   return (
-    <MainMenu onStartGame={handleStartGame} onShowProfiles={handleShowProfiles} onShowAchievements={handleShowAchievements} />
+    <>
+      {hardModeToggle}
+      <MainMenu onStartGame={handleStartGame} onShowProfiles={handleShowProfiles} onShowAchievements={handleShowAchievements} />
+    </>
   );
 }
 

@@ -4,6 +4,8 @@ import {
   GearPuzzleData,
   LogicPuzzleData,
   SpatialPuzzleData,
+  TimelinePuzzleData,
+  CipherPuzzleData,
   PuzzleType,
   Difficulty
 } from '../types';
@@ -12,9 +14,26 @@ interface PuzzleData {
   type: PuzzleType;
   difficulty: Difficulty;
   storyContext: string;
-  data: SequencePuzzleData | MirrorPuzzleData | GearPuzzleData | LogicPuzzleData | SpatialPuzzleData;
+  data:
+    | SequencePuzzleData
+    | MirrorPuzzleData
+    | GearPuzzleData
+    | LogicPuzzleData
+    | SpatialPuzzleData
+    | TimelinePuzzleData
+    | CipherPuzzleData;
   optimalMoves: number;
   explanation: string;
+  hardVariant?: Partial<Omit<PuzzleData, 'type' | 'difficulty'>> & {
+    data?:
+      | SequencePuzzleData
+      | MirrorPuzzleData
+      | GearPuzzleData
+      | LogicPuzzleData
+      | SpatialPuzzleData
+      | TimelinePuzzleData
+      | CipherPuzzleData;
+  };
 }
 
 export const casePuzzles: Record<number, PuzzleData[]> = {
@@ -106,6 +125,72 @@ export const casePuzzles: Record<number, PuzzleData[]> = {
       } as SpatialPuzzleData,
       optimalMoves: 2,
       explanation: 'The library key was in the side pocket! Mr. Pine used it to help set up the music box for the midnight surprise.'
+    },
+    {
+      type: 'timeline',
+      difficulty: 'easy',
+      storyContext: 'Sam wants to replay the night to prove the library visit was friendly. Arrange the steps to see how the surprise was set up.',
+      data: {
+        events: [
+          { id: 'call', description: 'Phone rings with the lullaby at midnight', clue: 'This started everything', timeHint: '12:00 AM' },
+          { id: 'entry', description: 'Sam unlocks the library door', clue: 'Just after the call', timeHint: '12:05 AM' },
+          { id: 'trail', description: 'Cookie crumb path toward the high shelves', clue: 'Follow the Fibonacci shelves' },
+          { id: 'reveal', description: 'Music box and note are discovered on the desk', clue: 'The final step' }
+        ],
+        correctOrder: ['call', 'entry', 'trail', 'reveal']
+      } as TimelinePuzzleData,
+      optimalMoves: 3,
+      explanation: 'The call happens first, then Sam enters, follows the crumb trail, and finally finds the gift.',
+      hardVariant: {
+        storyContext: 'Fewer timestamps remain on Sam\'s notes—use the crumbs and shelf math to anchor the order.',
+        data: {
+          events: [
+            { id: 'call', description: 'Phone rings with the lullaby at midnight', timeHint: '12:00 AM' },
+            { id: 'entry', description: 'Sam unlocks the library door', clue: 'Keys jingled right after the ring' },
+            { id: 'trail', description: 'Cookie crumb path toward the high shelves', clue: 'Numbers 3-5-8-13 stitched into the floor plan' },
+            { id: 'reveal', description: 'Music box and note are discovered on the desk' },
+            { id: 'decoy-mail', description: 'Mail delivery happens at noon', clue: 'This belongs to daytime only' }
+          ],
+          correctOrder: ['call', 'entry', 'trail', 'reveal', 'decoy-mail'],
+          decoys: [{ id: 'decoy-mail', description: 'Mail delivery happens at noon', clue: 'Out-of-place in a midnight story' }]
+        } as TimelinePuzzleData,
+        explanation: 'The daytime delivery sits last; the midnight ring and entry lock the rest of the order.'
+      }
+    },
+    {
+      type: 'cipher',
+      difficulty: 'easy',
+      storyContext: 'A short cipher is scratched on the music box lid. Decode it using Mrs. Maple\'s bedtime alphabet.',
+      data: {
+        cipherText: 'QFXX MZ TWMTB FXA FWNX',
+        alphabetKey: { Q: 'M', F: 'E', X: 'E', M: 'T', Z: 'A', T: 'T', W: 'N', B: 'I', A: 'D' },
+        clue: 'Her alphabet loops every three letters forward.',
+        options: [
+          'MEET AT MIDNIGHT NEAR',
+          'MEET AT MIDNIGHT NEAR BOX',
+          'MEET AT MIDNIGHT NEAR DESK',
+          'MEET AT MIDNIGHT NEAR ROSE'
+        ],
+        correctAnswer: 'MEET AT MIDNIGHT NEAR DESK'
+      } as CipherPuzzleData,
+      optimalMoves: 1,
+      explanation: 'Applying the forward shift spells “MEET AT MIDNIGHT NEAR DESK,” pointing Sam straight to the note.',
+      hardVariant: {
+        clue: 'Only the vowels stayed put; everything else marched three spaces.',
+        data: {
+          cipherText: 'QFXX MZ TWMTB FXA FWNX + ☎',
+          alphabetKey: { Q: 'M', F: 'E', X: 'E', M: 'T', Z: 'A', T: 'T', W: 'N', B: 'I', A: 'D', '+': 'CALL' },
+          options: [
+            'MEET AT MIDNIGHT NEAR DESK',
+            'MEET AT DAWN NEAR DESK',
+            'MEET AT MIDNIGHT NEAR PHONE',
+            'MEET AT MIDNIGHT NEAR WINDOW'
+          ],
+          correctAnswer: 'MEET AT MIDNIGHT NEAR PHONE',
+          decoySymbols: ['☎']
+        } as CipherPuzzleData,
+        explanation: 'The phone symbol hints the message ends with PHONE when the decoy token is placed correctly.'
+      }
     }
   ],
 
@@ -200,6 +285,37 @@ export const casePuzzles: Record<number, PuzzleData[]> = {
       } as SpatialPuzzleData,
       optimalMoves: 3,
       explanation: 'The passage connects compartment 5C to 4A (victim\'s room) through a shared wall behind the wardrobes. Sarah Chen used this to poison Castellane and steal the painting without ever entering the corridor!'
+    },
+    {
+      type: 'timeline',
+      difficulty: 'medium',
+      storyContext: 'Reconstruct the night service to see when the poison could slip in unnoticed.',
+      data: {
+        events: [
+          { id: 'dinner', description: 'Passengers seated for dinner', clue: '9:30 PM' },
+          { id: 'nightcap', description: 'Porter prepares the nightcap', clue: '10:00 PM' },
+          { id: 'passage', description: 'Secret door used between 5C and 4A', clue: 'Happens after the porter leaves the kitchen' },
+          { id: 'vial', description: 'Pharmacy vial drops in corridor', clue: 'Moments after the secret door closes' }
+        ],
+        correctOrder: ['dinner', 'nightcap', 'passage', 'vial']
+      } as TimelinePuzzleData,
+      optimalMoves: 3,
+      explanation: 'Dinner starts the window, the porter mixes the drink at 10:00, Sarah slips through the passage right after, then drops the vial during her exit.',
+      hardVariant: {
+        storyContext: 'Logs are smudged—depend on what must precede a dropped vial.',
+        data: {
+          events: [
+            { id: 'dinner', description: 'Passengers seated for dinner', clue: 'Kitchen is busiest first' },
+            { id: 'nightcap', description: 'Porter prepares the nightcap', clue: 'Orders logged at ten' },
+            { id: 'passage', description: 'Secret door used between 5C and 4A' },
+            { id: 'vial', description: 'Pharmacy vial drops in corridor' },
+            { id: 'decoy-stop', description: 'Avalanche stop blocks the tracks', clue: 'This happened after midnight' }
+          ],
+          correctOrder: ['dinner', 'nightcap', 'passage', 'vial', 'decoy-stop'],
+          decoys: [{ id: 'decoy-stop', description: 'Avalanche stop blocks the tracks', clue: 'Storm hit later' }]
+        } as TimelinePuzzleData,
+        explanation: 'The avalanche was later—the kitchen prep and secret passage must occur before any stoppage.'
+      }
     }
   ],
 
@@ -295,6 +411,62 @@ export const casePuzzles: Record<number, PuzzleData[]> = {
       } as SpatialPuzzleData,
       optimalMoves: 3,
       explanation: 'Rotating the book titled "The Garden of Good and Evil" at the correct angle reveals the hidden compartment containing Imogen Hart\'s original manuscript—written in her distinctive handwriting, proving Blackwood\'s first novel was stolen!'
+    },
+    {
+      type: 'timeline',
+      difficulty: 'medium',
+      storyContext: 'Map the path of the tea tray to see when ricin was added.',
+      data: {
+        events: [
+          { id: 'invitation', description: 'Blackwood reads cryptic invitations', clue: 'Earlier in the evening' },
+          { id: 'tea', description: 'Tea prepared in kitchen', clue: '11:00 PM' },
+          { id: 'passage', description: 'Someone uses library passage with tray', clue: 'Between kitchen and study' },
+          { id: 'collapse', description: 'Blackwood collapses at 11:47 PM', clue: 'End of chain' }
+        ],
+        correctOrder: ['invitation', 'tea', 'passage', 'collapse']
+      } as TimelinePuzzleData,
+      optimalMoves: 3,
+      explanation: 'The ciphered invite comes first, tea brewed at 11:00, the tray slips through the passage, then Blackwood collapses.',
+      hardVariant: {
+        storyContext: 'Clocks were stopped—lean on motive and distance.',
+        data: {
+          events: [
+            { id: 'invitation', description: 'Blackwood reads cryptic invitations' },
+            { id: 'tea', description: 'Tea prepared in kitchen' },
+            { id: 'passage', description: 'Someone uses library passage with tray', clue: 'Shortcuts beat hallways' },
+            { id: 'collapse', description: 'Blackwood collapses at desk' },
+            { id: 'decoy-reading', description: 'Midnight reading circle begins', clue: 'Starts after the keynote' }
+          ],
+          correctOrder: ['invitation', 'tea', 'passage', 'collapse', 'decoy-reading'],
+          decoys: [{ id: 'decoy-reading', description: 'Midnight reading circle begins', clue: 'Happens after the poisoning' }]
+        } as TimelinePuzzleData,
+        explanation: 'The midnight reading occurs after the collapse, making it the final slot.'
+      }
+    },
+    {
+      type: 'cipher',
+      difficulty: 'medium',
+      storyContext: 'A margin cipher in Blackwood\'s draft hides the ghostwriter she threatened.',
+      data: {
+        cipherText: 'UFMFU RCB WJJFI',
+        alphabetKey: { U: 'I', F: 'M', M: 'O', R: 'G', C: 'E', B: 'N', W: 'H', J: 'A', I: 'R' },
+        clue: 'Letters shift according to the word "INK" repeating.',
+        options: ['IMOGEN HART WROTE IT', 'IMOGEN RAN AWAY', 'IMOGEN HART', 'IMOGEN HATED HER'],
+        correctAnswer: 'IMOGEN HART'
+      } as CipherPuzzleData,
+      optimalMoves: 2,
+      explanation: 'The keyed shift spells IMOGEN HART, implicating her authorship.',
+      hardVariant: {
+        storyContext: 'Some key letters are smudged; only the shift pattern remains.',
+        data: {
+          cipherText: 'UFMFU RCB WJJFI ✒',
+          alphabetKey: { U: 'I', F: 'M', M: 'O', R: 'G', C: 'E', B: 'N', W: 'H', J: 'A', I: 'R', '✒': 'INK' },
+          options: ['IMOGEN HART', 'IMOGEN HINT', 'IMOGEN WROTE', 'IMOGEN HURT'],
+          correctAnswer: 'IMOGEN HART',
+          decoySymbols: ['✒']
+        } as CipherPuzzleData,
+        explanation: 'The pen icon restores the INK key, keeping IMOGEN HART as the solution.'
+      }
     }
   ],
 
@@ -395,6 +567,37 @@ export const casePuzzles: Record<number, PuzzleData[]> = {
       } as SpatialPuzzleData,
       optimalMoves: 5,
       explanation: 'The 3D model from Greer\'s encrypted drive shows Hammond\'s plan: accelerant on floors 15 (destroying servers), 18 (destroying accounting records), and 22 (destroying executive files and eliminating Greer). This evidence, which Hammond didn\'t know existed, proves premeditation and conspiracy to commit arson and murder.'
+    },
+    {
+      type: 'timeline',
+      difficulty: 'hard',
+      storyContext: 'Order the arson steps to expose when the murder and cover-up happened.',
+      data: {
+        events: [
+          { id: 'disable', description: 'Fire suppression disabled via IT credentials', clue: '2:47 AM system log' },
+          { id: 'shooting', description: 'Greer shot in his office', clue: 'Ballistics tie to Hammond' },
+          { id: 'accelerant', description: 'Accelerant planted on floors 15, 18, 22', clue: 'Right after the shooting' },
+          { id: 'ignite', description: 'Timers trigger simultaneous fires', clue: '3:27 AM' }
+        ],
+        correctOrder: ['disable', 'shooting', 'accelerant', 'ignite']
+      } as TimelinePuzzleData,
+      optimalMoves: 4,
+      explanation: 'Systems go down first, Greer is killed, accelerant laid, then timers ignite.',
+      hardVariant: {
+        storyContext: 'Audit notes are charred—only the sequence logic survives.',
+        data: {
+          events: [
+            { id: 'disable', description: 'Fire suppression disabled via IT credentials' },
+            { id: 'shooting', description: 'Greer shot in his office' },
+            { id: 'accelerant', description: 'Accelerant planted on floors 15, 18, 22' },
+            { id: 'ignite', description: 'Timers trigger simultaneous fires' },
+            { id: 'decoy-audit', description: 'Federal audit scheduled', clue: 'Happens next week' }
+          ],
+          correctOrder: ['disable', 'shooting', 'accelerant', 'ignite', 'decoy-audit'],
+          decoys: [{ id: 'decoy-audit', description: 'Federal audit scheduled', clue: 'Takes place later' }]
+        } as TimelinePuzzleData,
+        explanation: 'The audit is future tense; the suppression shutdown must precede every physical action.'
+      }
     }
   ],
 
@@ -473,6 +676,62 @@ export const casePuzzles: Record<number, PuzzleData[]> = {
       } as LogicPuzzleData,
       optimalMoves: 1,
       explanation: 'Marcus Webb is the mole who ran the $40M rogue intelligence/weapons operation. Thomas Ashford discovered this 2 years ago and became his partner, providing internal cover. When Volkov threatened to expose them, they recruited Dr. Nadia Khoury by blackmailing her (brother\'s Hezbollah ties). Khoury executed the murder: used Ashford\'s override codes for the 90-second blackout, accessed safe house through ventilation shaft (which she knew about from designing security), injected Volkov with succinylcholine from CIA supplies Webb provided, stole phone/documents, escaped through shaft. Webb paid Khoury $500K. Prague photo and audio recordings prove Webb-Ashford conspiracy. The stolen credentials were misdirection. All three arrested; Khoury testifying against Webb and Ashford.'
+    },
+    {
+      type: 'timeline',
+      difficulty: 'hard',
+      storyContext: 'Sequence the covert steps that made Volkov\'s murder look impossible.',
+      data: {
+        events: [
+          { id: 'blackout', description: 'Ashford triggers 90-second blackout', clue: '23:47' },
+          { id: 'vent', description: 'Khoury drops through ventilation shaft', clue: 'During blackout' },
+          { id: 'injection', description: 'Volkov injected with succinylcholine', clue: 'Immediately after entry' },
+          { id: 'escape', description: 'Evidence removed and escape through shaft', clue: 'Before cameras resume' }
+        ],
+        correctOrder: ['blackout', 'vent', 'injection', 'escape']
+      } as TimelinePuzzleData,
+      optimalMoves: 4,
+      explanation: 'Ashford cuts power, Khoury enters via shaft, injects Volkov, then leaves with the phone before cameras return.',
+      hardVariant: {
+        storyContext: 'Logs were tampered with—work from what had to precede the injection.',
+        data: {
+          events: [
+            { id: 'blackout', description: 'Ashford triggers 90-second blackout' },
+            { id: 'vent', description: 'Khoury drops through ventilation shaft' },
+            { id: 'injection', description: 'Volkov injected with succinylcholine' },
+            { id: 'escape', description: 'Evidence removed and escape through shaft' },
+            { id: 'decoy-call', description: 'Webb places a decoy phone call', clue: 'Recorded at 23:55' }
+          ],
+          correctOrder: ['blackout', 'vent', 'injection', 'escape', 'decoy-call'],
+          decoys: [{ id: 'decoy-call', description: 'Webb places a decoy phone call', clue: 'Happens after the blackout' }]
+        } as TimelinePuzzleData,
+        explanation: 'The decoy call comes after the cameras return; the blackout must lead the chain.'
+      }
+    },
+    {
+      type: 'cipher',
+      difficulty: 'hard',
+      storyContext: 'Volkov left a one-line cipher naming the mole. Decode it before it disappears.',
+      data: {
+        cipherText: 'NZOP UL CLYP AOL TVSL',
+        alphabetKey: { N: 'W', Z: 'E', O: 'B', P: 'B', U: 'A', L: 'S', C: 'H', Y: 'F', A: 'O', T: 'L', V: 'K' },
+        clue: 'Shift each letter seven places back—Volkov loved classic ciphers.',
+        options: ['WEBB IS THE MOLE', 'WEBB WAS INNOCENT', 'WEBB IS THE TOOL', 'WEBB IS THE MOVE'],
+        correctAnswer: 'WEBB IS THE MOLE'
+      } as CipherPuzzleData,
+      optimalMoves: 2,
+      explanation: 'The Caesar-style shift spells “WEBB IS THE MOLE,” implicating the CIA station chief.',
+      hardVariant: {
+        clue: 'Vowels are untouched; consonants shift seven back.',
+        data: {
+          cipherText: 'NZOP UL CLYP AOL TVSL + 🛰',
+          alphabetKey: { N: 'W', Z: 'E', O: 'B', P: 'B', U: 'A', L: 'S', C: 'H', Y: 'F', A: 'O', T: 'L', V: 'K', '+': 'SAT' },
+          options: ['WEBB IS THE MOLE', 'ASHFORD IS THE MOLE', 'KHOURY IS THE MOLE', 'WEBB IS THE CODE'],
+          correctAnswer: 'WEBB IS THE MOLE',
+          decoySymbols: ['🛰']
+        } as CipherPuzzleData,
+        explanation: 'Even with satellite glyph noise, the seven-letter shift keeps WEBB on top.'
+      }
     },
     {
       type: 'spatial',
