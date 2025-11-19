@@ -54,6 +54,16 @@ export interface PuzzleAttempt {
   actualMoves: number;
 }
 
+export type JournalCategory = 'clue' | 'artifact';
+
+export interface CaseJournalEntry {
+  id: string;
+  title: string;
+  detail: string;
+  category: JournalCategory;
+  obtainedAt: string;
+}
+
 export interface Session {
   id: string;
   zoneId: number;
