@@ -9,14 +9,15 @@ import { MirrorPuzzle } from './puzzles/MirrorPuzzle';
 import { GearPuzzle } from './puzzles/GearPuzzle';
 import { LogicPuzzle } from './puzzles/LogicPuzzle';
 import { SpatialPuzzle } from './puzzles/SpatialPuzzle';
-import { Trophy, Star, ArrowRight, Lightbulb } from 'lucide-react';
-import type { PuzzleConfig } from '../types';
+import { Trophy, ArrowRight, Lightbulb, BookOpen } from 'lucide-react';
 import { crimeScenes } from '../data/crimeScenes';
 import { useCompanionDialogue } from '../hooks/useCompanionDialogue';
 import { useAchievements } from '../hooks/useAchievements';
 import { AchievementNotifications } from './AchievementNotification';
 import { DifficultyIndicator } from './DifficultyIndicator';
 import { soundEngine } from '../lib/soundEngine';
+import { CaseJournalDrawer } from './CaseJournalDrawer';
+import { cases } from '../data/cases';
 
 interface Props {
   onComplete: () => void;
@@ -31,17 +32,17 @@ function GameSessionComponent({ onComplete }: Props) {
     completePuzzle,
     companion,
     profiles,
-    addCompanionXP
+    caseJournal,
+    addJournalEntry
   } = useGameStore();
 
   const [puzzleIndex, setPuzzleIndex] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
   const [showBriefing, setShowBriefing] = useState(true);
   const [showCrimeScene, setShowCrimeScene] = useState(true);
-  const [collectedEvidence, setCollectedEvidence] = useState<string[]>([]);
   const [sessionScore, setSessionScore] = useState(0);
-  const [puzzleStartTime, setPuzzleStartTime] = useState<number>(0);
   const [wrongAttempts, setWrongAttempts] = useState(0);
+  const [isJournalOpen, setJournalOpen] = useState(false);
   const strugglingTimerRef = useRef<NodeJS.Timeout>();
 
   const { currentMessage, triggerDialogue, requestHint, clearMessage, resetHints } = useCompanionDialogue(currentPuzzle?.type);
@@ -56,6 +57,7 @@ function GameSessionComponent({ onComplete }: Props) {
 
   const totalPuzzles = adaptiveState?.nextPuzzles.length || 5;
   const isLastPuzzle = puzzleIndex >= totalPuzzles - 1;
+  const journalEntries = currentZone ? caseJournal[currentZone.id] || [] : [];
 
   // Trigger companion dialogue when puzzle starts
   useEffect(() => {
@@ -72,7 +74,6 @@ function GameSessionComponent({ onComplete }: Props) {
   // Trigger puzzle start dialogue when briefing completes
   useEffect(() => {
     if (!showBriefing && currentPuzzle && !showCrimeScene) {
-      setPuzzleStartTime(Date.now());
       triggerDialogue('puzzle_start', true);
 
       // Set up struggling detection timer (30 seconds)
@@ -126,6 +127,28 @@ function GameSessionComponent({ onComplete }: Props) {
     const score = data.solved ? Math.max(0, 100 - data.hintsUsed * 10 - data.attemptsUsed * 5) : 0;
     setSessionScore(prev => prev + score);
 
+    if (data.solved && currentZone) {
+      const caseData = cases.find(detectiveCase => detectiveCase.id === currentZone.id);
+      const evidence = caseData?.evidenceTrail.find(e => e.puzzleType === currentPuzzle.type);
+      const timestamp = new Date().toISOString();
+
+      addJournalEntry(currentZone.id, {
+        id: crypto.randomUUID(),
+        title: evidence?.item || `${currentPuzzle.type.toUpperCase()} clue solved`,
+        detail: evidence?.significance || `Solved the ${currentPuzzle.type} puzzle for ${caseData?.title || 'this case'}.`,
+        category: 'clue',
+        obtainedAt: timestamp
+      });
+
+      addJournalEntry(currentZone.id, {
+        id: crypto.randomUUID(),
+        title: `${caseData?.title || 'Case'} artifact`,
+        detail: evidence?.location || 'Unlocked a new visual keepsake for this case.',
+        category: 'artifact',
+        obtainedAt: timestamp
+      });
+    }
+
     // Trigger appropriate companion dialogue and sounds
     if (data.solved) {
       if (data.timeTaken < 15 && data.hintsUsed === 0) {
@@ -157,7 +180,6 @@ function GameSessionComponent({ onComplete }: Props) {
   };
 
   const handleCrimeSceneComplete = (foundClues: string[]) => {
-    setCollectedEvidence(foundClues);
     setShowCrimeScene(false);
     setShowBriefing(false);
   };
@@ -337,6 +359,25 @@ function GameSessionComponent({ onComplete }: Props) {
           </motion.button>
         )}
       </div>
+
+      <div className="fixed top-6 right-6 z-50">
+        <motion.button
+          onClick={() => setJournalOpen(true)}
+          className="w-full bg-slate-900/90 text-amber-100 rounded-xl px-4 py-3 font-semibold text-sm shadow-lg border border-amber-700/40 hover:border-amber-500/60 hover:bg-slate-800/80 flex items-center gap-2 justify-center"
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <BookOpen size={18} />
+          Case Journal
+        </motion.button>
+      </div>
+
+      <CaseJournalDrawer
+        isOpen={isJournalOpen}
+        onClose={() => setJournalOpen(false)}
+        entries={journalEntries}
+        zoneName={currentZone.name}
+      />
 
       {currentPuzzle.type === 'sequence' && (
         <SequencePuzzle config={currentPuzzle} onComplete={handlePuzzleComplete} />

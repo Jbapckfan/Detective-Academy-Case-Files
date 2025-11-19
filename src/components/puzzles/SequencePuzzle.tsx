@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { generateSequencePuzzle } from '../../lib/puzzles/sequence-generator';
 import type { PuzzleConfig } from '../../types';
 import { useGameStore } from '../../store/gameStore';
 import { HelpCircle, Search, Clock, Target } from 'lucide-react';
 import { casePuzzles } from '../../data/puzzles';
+import { IntroPanel } from '../IntroPanel';
 
 interface Props {
   config: PuzzleConfig;
@@ -50,17 +51,20 @@ const COLOR_MAP: Record<string, string> = {
 export function SequencePuzzle({ config, onComplete }: Props) {
   const currentZone = useGameStore(state => state.currentZone);
   const updateCompanionState = useGameStore(state => state.updateCompanionState);
+  const companionName = useGameStore(state => state.companion?.name);
+  const [runId, setRunId] = useState(0);
+  const [completionTriggered, setCompletionTriggered] = useState(false);
 
   // Memoize puzzle generation to prevent re-computation
   const puzzle = useMemo(
-    () => generateSequencePuzzle(config.seed, config.difficulty, currentZone?.id),
-    [config.seed, config.difficulty, currentZone?.id]
+    () => generateSequencePuzzle(`${config.seed}-${runId}`, config.difficulty, currentZone?.id),
+    [config.seed, config.difficulty, currentZone?.id, runId]
   );
 
   const [selectedAnswer, setSelectedAnswer] = useState<string | number | null>(null);
   const [attempts, setAttempts] = useState(0);
   const [hints, setHints] = useState(0);
-  const [startTime] = useState(Date.now());
+  const [startTime, setStartTime] = useState(Date.now());
   const [elapsedTime, setElapsedTime] = useState(0);
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -76,6 +80,12 @@ export function SequencePuzzle({ config, onComplete }: Props) {
     };
   }, [currentZone?.id]);
 
+  const introLines = useMemo(() => {
+    const parts = storyData.storyContext.split(/(?<=[.!?])\s+/);
+    if (parts.length >= 2) return [parts[0], parts[1]] as [string, string];
+    return [storyData.storyContext, 'Lock in the next element to stay on the trail.'];
+  }, [storyData.storyContext]);
+
   useEffect(() => {
     updateCompanionState('curious');
     const timer = setInterval(() => {
@@ -83,6 +93,36 @@ export function SequencePuzzle({ config, onComplete }: Props) {
     }, 1000);
     return () => clearInterval(timer);
   }, [startTime, updateCompanionState]);
+
+  useEffect(() => {
+    setElapsedTime(0);
+    setCompletionTriggered(false);
+  }, [startTime]);
+
+  const finalizePuzzle = useCallback((solved: boolean, actualMoves = 1) => {
+    if (completionTriggered) return;
+    setCompletionTriggered(true);
+    const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+    onComplete({
+      solved,
+      timeTaken,
+      attemptsUsed: attempts,
+      hintsUsed: hints,
+      actualMoves
+    });
+  }, [attempts, completionTriggered, hints, onComplete, startTime]);
+
+  const handleReset = useCallback(() => {
+    setSelectedAnswer(null);
+    setAttempts(0);
+    setHints(0);
+    setElapsedTime(0);
+    setShowFeedback(false);
+    setIsCorrect(false);
+    setShowExplanation(false);
+    setStartTime(Date.now());
+    setRunId(prev => prev + 1);
+  }, []);
 
   const handleAnswer = useCallback((answer: string | number) => {
     setSelectedAnswer(answer);
@@ -96,15 +136,8 @@ export function SequencePuzzle({ config, onComplete }: Props) {
       updateCompanionState('cheering');
       setShowExplanation(true);
       setTimeout(() => {
-        const timeTaken = Math.floor((Date.now() - startTime) / 1000);
-        onComplete({
-          solved: true,
-          timeTaken,
-          attemptsUsed: attempts + 1,
-          hintsUsed: hints,
-          actualMoves: 1
-        });
-      }, 3000);
+        finalizePuzzle(true, attempts + 1 || 1);
+      }, 1800);
     } else {
       updateCompanionState('thinking');
       setTimeout(() => {
@@ -112,12 +145,16 @@ export function SequencePuzzle({ config, onComplete }: Props) {
         setSelectedAnswer(null);
       }, 1200);
     }
-  }, [puzzle.correctAnswer, attempts, hints, startTime, onComplete, updateCompanionState]);
+  }, [puzzle.correctAnswer, attempts, hints, finalizePuzzle, updateCompanionState]);
 
   const handleHint = useCallback(() => {
     setHints(prev => prev + 1);
     updateCompanionState('stuck');
   }, [updateCompanionState]);
+
+  const handleNextClue = useCallback(() => {
+    finalizePuzzle(isCorrect, attempts || 1);
+  }, [attempts, finalizePuzzle, isCorrect]);
 
   const renderElement = useCallback((element: string | number, index: number) => {
     if (typeof element === 'number') {
@@ -171,7 +208,9 @@ export function SequencePuzzle({ config, onComplete }: Props) {
           </motion.div>
         );
       }
-    } catch {}
+    } catch (error) {
+      console.debug('Sequence render parse skip', error);
+    }
 
     if (COLOR_MAP[element]) {
       return (
@@ -235,6 +274,14 @@ export function SequencePuzzle({ config, onComplete }: Props) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
+        <IntroPanel
+          title={`Case Lead • ${currentZone?.name || 'Open File'}`}
+          lines={introLines}
+          accentColor={currentZone?.theme.primary}
+          background={currentZone?.theme.background}
+          speaker={companionName || 'Detective Partner'}
+        />
+
         {/* Header with detective theme */}
         <div className="mb-6 border-b border-amber-900/30 pb-4">
           <div className="flex items-center gap-3 mb-3">
@@ -380,18 +427,29 @@ export function SequencePuzzle({ config, onComplete }: Props) {
         </AnimatePresence>
 
         {/* Actions */}
-        <div className="flex justify-between items-center pt-4 border-t border-slate-700/50">
-          <button
-            onClick={handleHint}
-            className="flex items-center gap-2 px-4 py-2 bg-amber-900/30 hover:bg-amber-900/50 text-amber-300 rounded-lg transition-all border border-amber-700/30 hover:border-amber-600/50"
-          >
-            <HelpCircle size={18} />
-            <span className="text-sm font-medium">Request Hint</span>
-          </button>
-
-          <div className="text-xs text-slate-500 italic">
-            Follow the evidence...
+        <div className="flex flex-wrap gap-3 justify-between items-center pt-4 border-t border-slate-700/50">
+          <div className="flex gap-2">
+            <button
+              onClick={handleHint}
+              className="flex items-center gap-2 px-4 py-2 bg-amber-900/30 hover:bg-amber-900/50 text-amber-300 rounded-lg transition-all border border-amber-700/30 hover:border-amber-600/50"
+            >
+              <HelpCircle size={18} />
+              <span className="text-sm font-medium">Request Hint</span>
+            </button>
+            <button
+              onClick={handleReset}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-700/40 hover:bg-slate-700/60 text-slate-200 rounded-lg transition-all border border-slate-600/40 hover:border-slate-500/60"
+            >
+              <span className="text-sm font-medium">Retry Puzzle</span>
+            </button>
           </div>
+
+          <button
+            onClick={handleNextClue}
+            className="px-5 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded-lg font-semibold transition-all shadow-lg border border-amber-500/30"
+          >
+            Next Clue
+          </button>
         </div>
       </motion.div>
     </div>

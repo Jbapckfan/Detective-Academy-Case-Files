@@ -9,7 +9,8 @@ import type {
   Settings,
   AdaptiveState,
   PuzzleAttempt,
-  CompanionState
+  CompanionState,
+  CaseJournalEntry
 } from '../types';
 import { adaptiveAlgorithm } from '../lib/adaptive-algorithm';
 import { storage } from '../lib/supabase';
@@ -27,6 +28,7 @@ interface GameState {
   zones: Zone[];
   isLoading: boolean;
   devMode: boolean;
+  caseJournal: Record<number, CaseJournalEntry[]>;
 
   setUser: (user: User) => void;
   setCompanion: (companion: Companion) => void;
@@ -36,6 +38,8 @@ interface GameState {
   completeSession: () => Promise<void>;
   startPuzzle: (config: PuzzleConfig) => void;
   completePuzzle: (attempt: Omit<PuzzleAttempt, 'id'>) => Promise<void>;
+  addJournalEntry: (zoneId: number, entry: CaseJournalEntry) => void;
+  resetJournalForZone: (zoneId: number) => void;
   updateSettings: (settings: Partial<Settings>) => void;
   loadUserData: (userId: string) => Promise<void>;
   saveUserData: () => Promise<void>;
@@ -126,6 +130,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   zones: ZONES,
   isLoading: false,
   devMode: false,
+  caseJournal: {},
 
   setUser: (user) => set({ user }),
 
@@ -163,8 +168,12 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     // Save session to localStorage
     const data = storage.getData();
+    const journal = data.caseJournal || {};
+    if (!journal[zoneId]) {
+      journal[zoneId] = [];
+    }
     data.sessions.push(session);
-    storage.saveData(data);
+    storage.saveData({ ...data, caseJournal: journal });
 
     const tier = user.tier;
     const adaptiveState = adaptiveAlgorithm.generateAdaptiveState(profiles, tier, 0);
@@ -174,7 +183,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       currentZone: zone,
       adaptiveState,
       currentPuzzle: adaptiveState.nextPuzzles[0] || null,
-      isLoading: false
+      isLoading: false,
+      caseJournal: journal
     });
   },
 
@@ -287,6 +297,27 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
   },
 
+  addJournalEntry: (zoneId, entry) =>
+    set((state) => {
+      const existingEntries = state.caseJournal[zoneId] || [];
+      const duplicate = existingEntries.some(e => e.title === entry.title && e.category === entry.category);
+      const updatedEntries = duplicate ? existingEntries : [...existingEntries, entry];
+      const updatedJournal = { ...state.caseJournal, [zoneId]: updatedEntries };
+
+      const data = storage.getData();
+      storage.saveData({ ...data, caseJournal: updatedJournal });
+
+      return { caseJournal: updatedJournal };
+    }),
+
+  resetJournalForZone: (zoneId) =>
+    set((state) => {
+      const updatedJournal = { ...state.caseJournal, [zoneId]: [] };
+      const data = storage.getData();
+      storage.saveData({ ...data, caseJournal: updatedJournal });
+      return { caseJournal: updatedJournal };
+    }),
+
   updateSettings: (newSettings) =>
     set((state) => ({
       settings: { ...state.settings, ...newSettings }
@@ -335,6 +366,10 @@ export const useGameStore = create<GameState>((set, get) => ({
           sequencing: data.profiles.sequencing
         }
       });
+    }
+
+    if (data.caseJournal) {
+      set({ caseJournal: data.caseJournal });
     }
 
     set({ isLoading: false });

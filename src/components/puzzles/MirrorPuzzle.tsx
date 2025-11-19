@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle, RotateCcw, Check, Zap, Clock, Target } from 'lucide-react';
 import type { PuzzleConfig } from '../../types';
 import { useGameStore } from '../../store/gameStore';
-import seedrandom from 'seedrandom';
 import { casePuzzles } from '../../data/puzzles';
+import { IntroPanel } from '../IntroPanel';
 
 interface Props {
   config: PuzzleConfig;
@@ -26,7 +26,6 @@ interface LightPath {
 }
 
 export function MirrorPuzzle({ config, onComplete }: Props) {
-  const rng = seedrandom(config.seed);
   const currentZone = useGameStore(state => state.currentZone);
   const gridSize = 8;
   const cellSize = 60;
@@ -35,12 +34,12 @@ export function MirrorPuzzle({ config, onComplete }: Props) {
   const targetPos = { x: gridSize - 1, y: Math.floor(gridSize / 2) };
 
   const [mirrors, setMirrors] = useState<Mirror[]>([]);
-  const [selectedMirror, setSelectedMirror] = useState<string | null>(null);
   const [hints, setHints] = useState(0);
-  const [startTime] = useState(Date.now());
+  const [startTime, setStartTime] = useState(Date.now());
   const [elapsedTime, setElapsedTime] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const updateCompanionState = useGameStore(state => state.updateCompanionState);
+  const [completionTriggered, setCompletionTriggered] = useState(false);
 
   const maxMirrors = config.difficulty === 'easy' ? 2 : config.difficulty === 'medium' ? 4 : 6;
 
@@ -48,7 +47,11 @@ export function MirrorPuzzle({ config, onComplete }: Props) {
   const caseId = currentZone?.id || 1;
   const casePuzzleData = casePuzzles[caseId]?.find(p => p.type === 'mirror');
   const storyContext = casePuzzleData?.storyContext || 'Place mirrors to guide the light beam to the target.';
-  const explanation = casePuzzleData?.explanation || 'Light path successfully traced!';
+  const introLines = storyContext.split(/(?<=[.!?])\s+/);
+  const companionName = useGameStore(state => state.companion?.name);
+  const introPanelLines = introLines.length >= 2
+    ? [introLines[0], introLines[1]]
+    : [introLines[0] || storyContext, 'Trace the beam to unlock the next clue.'];
 
   useEffect(() => {
     updateCompanionState('curious');
@@ -56,6 +59,11 @@ export function MirrorPuzzle({ config, onComplete }: Props) {
       setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
     }, 1000);
     return () => clearInterval(timer);
+  }, [startTime, updateCompanionState]);
+
+  useEffect(() => {
+    setElapsedTime(0);
+    setCompletionTriggered(false);
   }, [startTime]);
 
   const calculateLightPath = (): { paths: LightPath[], hitsTarget: boolean } => {
@@ -140,6 +148,24 @@ export function MirrorPuzzle({ config, onComplete }: Props) {
 
   const { paths, hitsTarget } = calculateLightPath();
 
+  const finalizePuzzle = (solved: boolean) => {
+    if (completionTriggered) return;
+    setCompletionTriggered(true);
+    const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+
+    updateCompanionState(solved ? 'cheering' : 'thinking');
+
+    setTimeout(() => {
+      onComplete({
+        solved,
+        timeTaken,
+        attemptsUsed: attempts,
+        hintsUsed: hints,
+        actualMoves: mirrors.length
+      });
+    }, solved ? 1200 : 400);
+  };
+
   const handleAddMirror = (x: number, y: number) => {
     if (mirrors.length >= maxMirrors) return;
     if (mirrors.some(m => m.x === x && m.y === y)) return;
@@ -169,30 +195,25 @@ export function MirrorPuzzle({ config, onComplete }: Props) {
   };
 
   const handleCheck = () => {
-    const timeTaken = Math.floor((Date.now() - startTime) / 1000);
-    const solved = hitsTarget;
-
-    updateCompanionState(solved ? 'cheering' : 'thinking');
-
-    setTimeout(() => {
-      onComplete({
-        solved,
-        timeTaken,
-        attemptsUsed: attempts,
-        hintsUsed: hints,
-        actualMoves: mirrors.length
-      });
-    }, solved ? 1500 : 500);
+    finalizePuzzle(hitsTarget);
   };
 
   const handleReset = () => {
     setMirrors([]);
-    setAttempts(prev => prev + 1);
+    setAttempts(0);
+    setHints(0);
+    setElapsedTime(0);
+    setStartTime(Date.now());
+    setCompletionTriggered(false);
   };
 
   const handleHint = () => {
     setHints(prev => prev + 1);
     updateCompanionState('stuck');
+  };
+
+  const handleNextClue = () => {
+    finalizePuzzle(hitsTarget);
   };
 
   const formatTime = (seconds: number) => {
@@ -211,6 +232,14 @@ export function MirrorPuzzle({ config, onComplete }: Props) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
+        <IntroPanel
+          title={`Case Lead • ${currentZone?.name || 'Open File'}`}
+          lines={introPanelLines as [string, string]}
+          accentColor={currentZone?.theme.primary}
+          background={currentZone?.theme.background}
+          speaker={companionName || 'Detective Partner'}
+        />
+
         {/* Header */}
         <div className="mb-6 border-b border-amber-900/30 pb-4">
           <div className="flex items-center gap-3 mb-3">
@@ -355,10 +384,7 @@ export function MirrorPuzzle({ config, onComplete }: Props) {
                         className="relative w-full h-full flex items-center justify-center"
                         initial={{ scale: 0, rotate: -90 }}
                         animate={{ scale: 1, rotate: 0 }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedMirror(mirror.id);
-                        }}
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <div
                           className="w-12 h-2 bg-gradient-to-r from-cyan-300 via-blue-300 to-cyan-300 rounded-full shadow-lg cursor-pointer border border-cyan-200"
@@ -428,18 +454,26 @@ export function MirrorPuzzle({ config, onComplete }: Props) {
               className="flex items-center gap-2 px-4 py-2 bg-slate-700/30 hover:bg-slate-700/50 text-slate-300 rounded-lg transition-all border border-slate-600/30 hover:border-slate-500/50"
             >
               <RotateCcw size={18} />
-              <span className="text-sm font-medium">Reset</span>
+              <span className="text-sm font-medium">Retry Puzzle</span>
             </button>
           </div>
 
-          <button
-            onClick={handleCheck}
-            className="px-6 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded-lg font-semibold transition-all flex items-center gap-2 shadow-lg border border-amber-500/30"
-            disabled={mirrors.length === 0}
-          >
-            <Check size={20} />
-            <span>Verify Solution</span>
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleNextClue}
+              className="px-5 py-2 bg-slate-700/30 hover:bg-slate-700/50 text-slate-100 rounded-lg font-semibold transition-all flex items-center gap-2 border border-slate-600/40"
+            >
+              <span>Next Clue</span>
+            </button>
+            <button
+              onClick={handleCheck}
+              className="px-6 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded-lg font-semibold transition-all flex items-center gap-2 shadow-lg border border-amber-500/30"
+              disabled={mirrors.length === 0}
+            >
+              <Check size={20} />
+              <span>Verify Solution</span>
+            </button>
+          </div>
         </div>
       </motion.div>
     </div>

@@ -6,6 +6,7 @@ export interface StoredData {
   profiles: any;
   sessions: any[];
   puzzleAttempts: any[];
+  caseJournal?: Record<number, any[]>;
 }
 
 const STORAGE_KEY = 'detective_academy_data';
@@ -20,7 +21,8 @@ export const storage = {
         companion: null,
         profiles: null,
         sessions: [],
-        puzzleAttempts: []
+        puzzleAttempts: [],
+        caseJournal: {}
       };
     }
     return JSON.parse(data);
