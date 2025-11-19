@@ -5,6 +5,7 @@ import type { PuzzleConfig } from '../../types';
 import { useGameStore } from '../../store/gameStore';
 import seedrandom from 'seedrandom';
 import { casePuzzles } from '../../data/puzzles';
+import { crimeScenes } from '../../data/crimeScenes';
 
 interface Props {
   config: PuzzleConfig;
@@ -149,8 +150,13 @@ export function LogicPuzzle({ config, onComplete }: Props) {
   // Get story context from puzzle data
   const caseId = currentZone?.id || 1;
   const casePuzzleData = casePuzzles[caseId]?.find(p => p.type === 'logic');
+  const scene = casePuzzleData ? crimeScenes[casePuzzleData.caseId] : crimeScenes[caseId];
   const storyContext = casePuzzleData?.storyContext || puzzle.story;
   const explanation = casePuzzleData?.explanation || 'Correct deduction!';
+  const whyItMatters = casePuzzleData?.whyItMatters;
+  const narratorHint = casePuzzleData?.narratorHint;
+  const suspectReaction = casePuzzleData?.suspectReaction;
+  const sceneName = scene?.sceneName;
 
   useEffect(() => {
     updateCompanionState('curious');
@@ -251,7 +257,13 @@ export function LogicPuzzle({ config, onComplete }: Props) {
             <div className="text-2xl">📋</div>
             <div>
               <h3 className="text-amber-400 font-semibold mb-1 text-sm uppercase tracking-wide">Case Brief</h3>
+              {sceneName && (
+                <p className="text-xs text-amber-300 mb-1">{sceneName}</p>
+              )}
               <p className="text-slate-200 leading-relaxed italic">{storyContext}</p>
+              {whyItMatters && (
+                <p className="text-amber-200 text-sm mt-2">Why this matters: {whyItMatters}</p>
+              )}
             </div>
           </div>
         </motion.div>
@@ -347,6 +359,12 @@ export function LogicPuzzle({ config, onComplete }: Props) {
                 <div>
                   <p className="text-green-400 font-semibold mb-2">Case Solved!</p>
                   <p className="text-green-100 text-sm leading-relaxed">{explanation}</p>
+                  {narratorHint && (
+                    <p className="text-emerald-200 text-xs mt-2">Narrator: {narratorHint}</p>
+                  )}
+                  {suspectReaction && (
+                    <p className="text-amber-200 text-xs mt-1">Suspect reaction: {suspectReaction}</p>
+                  )}
                 </div>
               </div>
             </motion.div>

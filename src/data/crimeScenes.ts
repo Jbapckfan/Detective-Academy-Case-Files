@@ -13,6 +13,7 @@ interface Investigation {
 
 export interface CrimeSceneData {
   caseId: number;
+  sceneId: string;
   sceneName: string;
   description: string;
   investigations: Investigation[];
@@ -22,6 +23,7 @@ export interface CrimeSceneData {
 export const crimeScenes: Record<number, CrimeSceneData> = {
   1: { // The Midnight Caller
     caseId: 1,
+    sceneId: "library-after-hours",
     sceneName: "Whispering Pines Library - After Hours",
     description: "The old library sits quiet and dark. Mrs. Maple's desk is covered in books and papers. A music box plays softly in the corner. Conduct a thorough investigation to uncover the mystery!",
     requiredInvestigations: 3,
@@ -152,6 +154,7 @@ P.S. The cookies are from Ms. Rose's special recipe. She insisted.`,
 
   2: { // Blood on the Tracks
     caseId: 2,
+    sceneId: "luxury-train-compartment-5c",
     sceneName: "Luxury Train - Compartment 5C",
     description: "The victim's compartment shows signs of a carefully planned murder. Medical supplies, hidden passages, and incriminating documents tell a dark story of revenge.",
     requiredInvestigations: 3,
@@ -296,6 +299,7 @@ This evidence will destroy Dr. Chen's career and reputation.`,
 
   3: { // The Poisoned Pen
     caseId: 3,
+    sceneId: "ashwood-study",
     sceneName: "Ashwood Writers Retreat - Marcus Thorne's Study",
     description: "The smell of bitter almonds fills the air. A famous author lies dead, poisoned tea beside him. Decades-old betrayal and stolen literary dreams culminate in revenge.",
     requiredInvestigations: 3,
@@ -437,6 +441,7 @@ This contract proves Marcus Thorne erased Imogen Hart's name and claimed her nov
 
   4: { // Ashes to Ashes
     caseId: 4,
+    sceneId: "meridian-tower-22nd-floor",
     sceneName: "Meridian Tower - 22nd Floor Crime Scene",
     description: "Corporate conspiracy written in ash and destruction. A CEO lies dead, a building burned, and $847 million missing. Two executives tried to destroy the evidence... and failed.",
     requiredInvestigations: 4,
