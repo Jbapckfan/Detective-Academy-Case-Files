@@ -5,6 +5,7 @@ import type { PuzzleConfig } from '../../types';
 import { useGameStore } from '../../store/gameStore';
 import seedrandom from 'seedrandom';
 import { casePuzzles } from '../../data/puzzles';
+import { caseThemes } from '../../data/cases';
 
 interface Props {
   config: PuzzleConfig;
@@ -28,6 +29,8 @@ interface LightPath {
 export function MirrorPuzzle({ config, onComplete }: Props) {
   const rng = seedrandom(config.seed);
   const currentZone = useGameStore(state => state.currentZone);
+  const theme = currentZone?.theme || caseThemes[1];
+  const glowStyle = { ['--glow-color' as any]: theme.glow };
   const gridSize = 8;
   const cellSize = 60;
 
@@ -202,44 +205,56 @@ export function MirrorPuzzle({ config, onComplete }: Props) {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 sm:p-8 bg-slate-900 relative overflow-hidden">
+    <div
+      className="flex flex-col items-center justify-center min-h-screen p-4 sm:p-8 relative overflow-hidden"
+      style={{ backgroundImage: `${theme.background}, url(${theme.textures.background})` }}
+    >
       {/* Film grain overlay */}
       <div className="absolute inset-0 opacity-[0.15] pointer-events-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxwYXRoIGQ9Ik0wIDBoMzAwdjMwMEgweiIgZmlsdGVyPSJ1cmwoI2EpIiBvcGFjaXR5PSIuMDUiLz48L3N2Zz4=')]"></div>
 
       <motion.div
-        className="bg-slate-800/90 backdrop-blur-md rounded-2xl shadow-2xl p-6 sm:p-8 max-w-6xl w-full border border-amber-900/30 relative"
+        className="backdrop-blur-md rounded-2xl shadow-2xl p-6 sm:p-8 max-w-6xl w-full relative"
+        style={{
+          backgroundImage: `linear-gradient(145deg, ${theme.palette.primary}, ${theme.palette.secondary})`,
+          border: `1px solid ${theme.palette.accent}55`,
+          boxShadow: `0 20px 40px ${theme.palette.primary}55`
+        }}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
         {/* Header */}
-        <div className="mb-6 border-b border-amber-900/30 pb-4">
+        <div className="mb-6 border-b pb-4" style={{ borderColor: `${theme.palette.accent}55` }}>
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 bg-amber-600/20 rounded-lg border border-amber-600/30">
-              <Zap className="w-6 h-6 text-amber-400" />
+            <div
+              className="p-2 rounded-lg border"
+              style={{ background: `${theme.palette.accent}22`, borderColor: `${theme.palette.accent}55` }}
+            >
+              <Zap className="w-6 h-6" style={{ color: theme.palette.highlight }} />
             </div>
             <div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-amber-400 tracking-wide">LIGHT PATH ANALYSIS</h2>
-              <p className="text-slate-400 text-sm">Trace the Reflection Path</p>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-wide" style={{ color: theme.palette.highlight }}>LIGHT PATH ANALYSIS</h2>
+              <p className="text-slate-100/80 text-sm">Trace the Reflection Path</p>
             </div>
           </div>
 
           {/* Stats */}
           <div className="flex flex-wrap gap-4 mt-4 text-sm">
-            <div className="flex items-center gap-2 text-slate-300">
-              <Clock className="w-4 h-4 text-amber-500" />
+            <div className="flex items-center gap-2 text-slate-100/80">
+              <Clock className="w-4 h-4" style={{ color: theme.palette.accent }} />
               <span className="font-mono">{formatTime(elapsedTime)}</span>
             </div>
-            <div className="flex items-center gap-2 text-slate-300">
-              <Target className="w-4 h-4 text-amber-500" />
+            <div className="flex items-center gap-2 text-slate-100/80">
+              <Target className="w-4 h-4" style={{ color: theme.palette.accent }} />
               <span>Mirrors: {mirrors.length}/{maxMirrors}</span>
             </div>
-            <div className="flex items-center gap-2 text-slate-300">
-              <HelpCircle className="w-4 h-4 text-amber-500" />
+            <div className="flex items-center gap-2 text-slate-100/80">
+              <HelpCircle className="w-4 h-4" style={{ color: theme.palette.accent }} />
               <span>Hints Used: {hints}</span>
             </div>
             {hitsTarget && (
               <motion.div
-                className="flex items-center gap-2 text-green-400 font-semibold"
+                className="flex items-center gap-2 font-semibold success-glow"
+                style={glowStyle}
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
               >
@@ -267,7 +282,15 @@ export function MirrorPuzzle({ config, onComplete }: Props) {
         </motion.div>
 
         <div className="mb-6 flex justify-center">
-          <div className="relative bg-slate-950 rounded-xl p-4 border border-slate-700/50" style={{ width: gridSize * cellSize + 32, height: gridSize * cellSize + 32 }}>
+          <div
+            className="relative rounded-xl p-4 border"
+            style={{
+              width: gridSize * cellSize + 32,
+              height: gridSize * cellSize + 32,
+              backgroundImage: `linear-gradient(135deg, ${theme.palette.primary}77, ${theme.palette.secondary}55), url(${theme.textures.surface})`,
+              borderColor: `${theme.palette.accent}55`
+            }}
+          >
             <svg
               width={gridSize * cellSize}
               height={gridSize * cellSize}
@@ -281,13 +304,13 @@ export function MirrorPuzzle({ config, onComplete }: Props) {
                   y1={path.y1 * cellSize}
                   x2={path.x2 * cellSize}
                   y2={path.y2 * cellSize}
-                  stroke="#fbbf24"
+                  stroke={theme.palette.accent}
                   strokeWidth="4"
                   initial={{ pathLength: 0, opacity: 0 }}
                   animate={{ pathLength: 1, opacity: 1 }}
                   transition={{ duration: 0.4, delay: i * 0.15 }}
                   style={{
-                    filter: 'drop-shadow(0 0 12px rgba(251, 191, 36, 0.9)) drop-shadow(0 0 4px rgba(251, 191, 36, 1))',
+                    filter: `drop-shadow(0 0 12px ${theme.palette.accent}aa) drop-shadow(0 0 4px ${theme.palette.accent})`,
                   }}
                 />
               ))}
@@ -318,13 +341,18 @@ export function MirrorPuzzle({ config, onComplete }: Props) {
                   >
                     {isStart && (
                       <motion.div
-                        className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-2xl shadow-lg border-2 border-amber-300"
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-2xl shadow-lg border-2 piece-shine"
+                        style={{
+                          backgroundImage: `linear-gradient(145deg, ${theme.palette.accent}, ${theme.palette.highlight})`,
+                          borderColor: theme.palette.accent,
+                          ...glowStyle
+                        }}
                         animate={{
                           scale: [1, 1.15, 1],
                           boxShadow: [
-                            '0 0 20px rgba(251, 191, 36, 0.6)',
-                            '0 0 30px rgba(251, 191, 36, 0.9)',
-                            '0 0 20px rgba(251, 191, 36, 0.6)'
+                            `0 0 20px ${theme.palette.accent}66`,
+                            `0 0 30px ${theme.palette.accent}`,
+                            `0 0 20px ${theme.palette.accent}66`
                           ]
                         }}
                         transition={{ repeat: Infinity, duration: 2 }}
@@ -335,14 +363,21 @@ export function MirrorPuzzle({ config, onComplete }: Props) {
                     {isTarget && (
                       <motion.div
                         className={`w-10 h-10 rounded-full flex items-center justify-center text-2xl shadow-lg border-2 ${
-                          hitsTarget ? 'bg-gradient-to-br from-green-400 to-emerald-500 border-green-300' : 'bg-gradient-to-br from-slate-700 to-slate-800 border-slate-600'
+                          hitsTarget ? 'success-glow' : ''
                         }`}
+                        style={{
+                          backgroundImage: hitsTarget
+                            ? `linear-gradient(145deg, ${theme.palette.highlight}, ${theme.palette.accent})`
+                            : `linear-gradient(145deg, ${theme.palette.secondary}, ${theme.palette.primary})`,
+                          borderColor: hitsTarget ? theme.palette.highlight : `${theme.palette.secondary}88`,
+                          ...glowStyle
+                        }}
                         animate={hitsTarget ? {
                           scale: [1, 1.2, 1],
                           boxShadow: [
-                            '0 0 20px rgba(74, 222, 128, 0.6)',
-                            '0 0 40px rgba(74, 222, 128, 1)',
-                            '0 0 20px rgba(74, 222, 128, 0.6)'
+                            `0 0 20px ${theme.palette.highlight}99`,
+                            `0 0 40px ${theme.palette.highlight}`,
+                            `0 0 20px ${theme.palette.highlight}99`
                           ]
                         } : {}}
                         transition={hitsTarget ? { repeat: Infinity, duration: 1 } : {}}
@@ -360,12 +395,11 @@ export function MirrorPuzzle({ config, onComplete }: Props) {
                           setSelectedMirror(mirror.id);
                         }}
                       >
-                        <div
-                          className="w-12 h-2 bg-gradient-to-r from-cyan-300 via-blue-300 to-cyan-300 rounded-full shadow-lg cursor-pointer border border-cyan-200"
-                          style={{
-                            transform: `rotate(${mirror.angle}deg)`,
-                            boxShadow: '0 0 8px rgba(103, 232, 249, 0.6), 0 0 12px rgba(103, 232, 249, 0.4)'
-                          }}
+                        <img
+                          src={theme.assets.mirror}
+                          alt="mirror"
+                          className="w-14 h-14 drop-shadow-xl piece-snap piece-shine"
+                          style={{ transform: `rotate(${mirror.angle}deg)` }}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleRotateMirror(mirror.id);

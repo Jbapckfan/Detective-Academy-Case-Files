@@ -1,4 +1,10 @@
-import { Tier } from '../types';
+import { CaseTheme, Tier } from '../types';
+import brassGear from '../assets/brass-gear.svg';
+import trainWheel from '../assets/train-wheel.svg';
+import stainedGlassShard from '../assets/stained-glass-shard.svg';
+import paperTexture from '../assets/paper-fiber.svg';
+import metalMesh from '../assets/metal-mesh.svg';
+import glassNoise from '../assets/glass-noise.svg';
 
 export interface Character {
   name: string;
@@ -23,13 +29,164 @@ export interface DetectiveCase {
   characters: Character[];
   evidenceTrail: Evidence[];
   solution: string;
-  theme: {
-    primary: string;
-    secondary: string;
-    background: string;
-  };
+  theme: CaseTheme;
   tier: Tier;
 }
+
+export const caseThemes: Record<number, CaseTheme> = {
+  1: {
+    palette: {
+      primary: '#2d5a8f',
+      secondary: '#5b8fc4',
+      accent: '#fbbf24',
+      highlight: '#c084fc'
+    },
+    emojiSet: ['📚', '🔑', '📜', '🕰️', '💡', '🧭'],
+    background: 'linear-gradient(135deg, #1a3a5c 0%, #2d5a8f 100%)',
+    textures: {
+      background: paperTexture,
+      surface: paperTexture
+    },
+    assets: {
+      gear: brassGear,
+      mirror: stainedGlassShard
+    },
+    glow: '#fbbf24'
+  },
+  2: {
+    palette: {
+      primary: '#4a0e0e',
+      secondary: '#7a1d1d',
+      accent: '#c9d6df',
+      highlight: '#e5e7eb'
+    },
+    emojiSet: ['🚂', '🛤️', '🕰️', '🎫', '🧳', '🔦'],
+    background: 'linear-gradient(135deg, #2b0808 0%, #4a0e0e 100%)',
+    textures: {
+      background: metalMesh,
+      surface: metalMesh
+    },
+    assets: {
+      gear: trainWheel,
+      mirror: stainedGlassShard
+    },
+    glow: '#c9d6df'
+  },
+  3: {
+    palette: {
+      primary: '#2d1b3d',
+      secondary: '#4a2d5c',
+      accent: '#c084fc',
+      highlight: '#f472b6'
+    },
+    emojiSet: ['🖋️', '📖', '🕯️', '📜', '🪶', '🧭'],
+    background: 'linear-gradient(135deg, #1a0f26 0%, #2d1b3d 100%)',
+    textures: {
+      background: glassNoise,
+      surface: paperTexture
+    },
+    assets: {
+      gear: brassGear,
+      mirror: stainedGlassShard
+    },
+    glow: '#c084fc'
+  },
+  4: {
+    palette: {
+      primary: '#1a0f0a',
+      secondary: '#3d1f0f',
+      accent: '#f97316',
+      highlight: '#fbbf24'
+    },
+    emojiSet: ['🏢', '💼', '💰', '🧯', '🧾', '📈'],
+    background: 'linear-gradient(135deg, #0a0504 0%, #1a0f0a 100%)',
+    textures: {
+      background: metalMesh,
+      surface: metalMesh
+    },
+    assets: {
+      gear: brassGear,
+      mirror: stainedGlassShard
+    },
+    glow: '#f97316'
+  },
+  5: {
+    palette: {
+      primary: '#0d1b2a',
+      secondary: '#1b263b',
+      accent: '#38bdf8',
+      highlight: '#a5f3fc'
+    },
+    emojiSet: ['🛰️', '🔐', '🧬', '📡', '🧊', '🕶️'],
+    background: 'linear-gradient(135deg, #020407 0%, #0d1b2a 100%)',
+    textures: {
+      background: glassNoise,
+      surface: metalMesh
+    },
+    assets: {
+      gear: brassGear,
+      mirror: stainedGlassShard
+    },
+    glow: '#38bdf8'
+  },
+  101: {
+    palette: {
+      primary: '#8b5cf6',
+      secondary: '#a78bfa',
+      accent: '#fbbf24',
+      highlight: '#c4b5fd'
+    },
+    emojiSet: ['💎', '🕯️', '🔐', '🧩', '📜', '🪞'],
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    textures: {
+      background: paperTexture,
+      surface: paperTexture
+    },
+    assets: {
+      gear: brassGear,
+      mirror: stainedGlassShard
+    },
+    glow: '#fbbf24'
+  },
+  102: {
+    palette: {
+      primary: '#ef4444',
+      secondary: '#f87171',
+      accent: '#38bdf8',
+      highlight: '#fef08a'
+    },
+    emojiSet: ['🖼️', '💎', '🧲', '🔦', '🎨', '🪞'],
+    background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+    textures: {
+      background: glassNoise,
+      surface: glassNoise
+    },
+    assets: {
+      gear: brassGear,
+      mirror: stainedGlassShard
+    },
+    glow: '#fef08a'
+  },
+  103: {
+    palette: {
+      primary: '#0ea5e9',
+      secondary: '#38bdf8',
+      accent: '#f97316',
+      highlight: '#a5f3fc'
+    },
+    emojiSet: ['💻', '🔐', '🛰️', '📊', '🧠', '🧩'],
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    textures: {
+      background: metalMesh,
+      surface: glassNoise
+    },
+    assets: {
+      gear: brassGear,
+      mirror: stainedGlassShard
+    },
+    glow: '#38bdf8'
+  }
+};
 
 export const cases: DetectiveCase[] = [
   {
@@ -91,11 +248,7 @@ export const cases: DetectiveCase[] = [
       }
     ],
     solution: "All three suspects were working together on a kind mission! Billy Maple asked Ms. Rose and Mr. Pine to help him fulfill his aunt's wish to leave a special gift for the town's children. They set up the music box to call Detective Sam at midnight because Mrs. Maple wrote in her note that 'midnight is when magic happens, and Sam always solves mysteries with his heart.' The cookie crumbs were from Ms. Rose bringing snacks while they worked. The mailbag was left behind by Mr. Pine in their rush to finish before midnight. Billy drew the picture showing their teamwork. It wasn't a crime—it was a celebration of community kindness!",
-    theme: {
-      primary: "#2d5a8f",
-      secondary: "#5b8fc4",
-      background: "linear-gradient(135deg, #1a3a5c 0%, #2d5a8f 100%)"
-    },
+    theme: caseThemes[1],
     tier: "jr-detective"
   },
   {
@@ -181,11 +334,7 @@ export const cases: DetectiveCase[] = [
       }
     ],
     solution: "Sarah Chen is the killer. Despite appearing to be a struggling artist, she was actually working with Marcus Devereaux to steal Castellane's painting—but decided to murder him for revenge. She used her compartment's secret connecting door (which she discovered during boarding) to access Castellane's room while everyone was at dinner. She poisoned the nightcap before the porter collected it from the kitchen, using her 'art supplies' as cover for the aconite. The threatening letter in blue ink matched her artistic handwriting. She took the painting through the secret passage. The locked room was never a puzzle—she simply returned to her own compartment through the hidden door. Her mistake was dropping the pharmacy vial when she heard someone in the corridor. Devereaux's forged ticket connects him as her accomplice, but he didn't commit murder—he was the distraction during dinner.",
-    theme: {
-      primary: "#4a0e0e",
-      secondary: "#7a1d1d",
-      background: "linear-gradient(135deg, #2b0808 0%, #4a0e0e 100%)"
-    },
+    theme: caseThemes[2],
     tier: "detective"
   },
   {
@@ -271,11 +420,7 @@ export const cases: DetectiveCase[] = [
       }
     ],
     solution: "Imogen Hart is the murderer. Blackwood didn't just steal her manuscript—she stole her entire debut novel, the one that made Blackwood famous. Imogen has spent twenty years watching Blackwood build a career on her stolen work while she struggled in obscurity. The bookmark cipher spelled out 'HART'S REVENGE' when decoded. She used the secret library passage to access the tea service, having studied the manor's layout from Gothic romance research. The dark coat seen near the kitchen was hers. She prepared the ricin from castor beans weeks ago (her invitation referenced this as a clue she left deliberately—wanting to prove she was smarter than Blackwood). The burned pages were from her original manuscript, which she destroyed after poisoning Blackwood, believing they might connect her to the crime. Her fatal error: the hidden manuscript behind the bookcase contained her handwriting. She didn't know Blackwood kept the original as 'insurance.' The pen name 'Cordelia Blackwood' was meant to be shared—it was Imogen's idea—but Blackwood betrayed her and took everything.",
-    theme: {
-      primary: "#2d1b3d",
-      secondary: "#4a2d5c",
-      background: "linear-gradient(135deg, #1a0f26 0%, #2d1b3d 100%)"
-    },
+    theme: caseThemes[3],
     tier: "detective"
   },
   {
@@ -367,11 +512,7 @@ export const cases: DetectiveCase[] = [
       }
     ],
     solution: "Patricia Hammond murdered Martin Greer and orchestrated the arson with assistance from David Koslow. The fraud was Meridian's and Chow's creation, but Hammond discovered Greer was cooperating with investigators. She panicked and decided to destroy all evidence—and eliminate Greer, who could testify against her personally for accepting bribes. She recruited Koslow by threatening to expose his embezzlement of IT funds. Together they planned: Koslow disabled security and fire suppression using his credentials; Hammond shot Greer in his office at 2:45 AM using her registered firearm; they planted accelerant on three strategic floors; Hammond left at 3:15 AM (caught on external camera); Koslow set timers and left through service entrance at 3:20 AM; the building burned at 3:27 AM. The reversed offshore transaction was Hammond moving $40M back to avoid looking suspicious—but it created a digital trail. The encrypted drive Greer hid contained evidence Hammond was planning the fire, including messages where she researched arson techniques. The ballistics match was decisive. Hammond believed the fire would destroy everything, but Greer's paranoia—keeping backups at home—became his posthumous revenge. Koslow is cooperating; Hammond faces murder one, arson, and conspiracy charges.",
-    theme: {
-      primary: "#1a0f0a",
-      secondary: "#3d1f0f",
-      background: "linear-gradient(135deg, #0a0504 0%, #1a0f0a 100%)"
-    },
+    theme: caseThemes[4],
     tier: "master-detective"
   },
   {
@@ -469,11 +610,7 @@ export const cases: DetectiveCase[] = [
       }
     ],
     solution: "The conspiracy runs deeper than a single killer. Marcus Webb is the mole—he's been running a rogue operation selling intelligence and weapons to terrorist organizations through shell companies, generating $40M over ten years. Thomas Ashford discovered this two years ago and became his partner, providing cover from internal investigations. When Volkov threatened to expose them, they planned his assassination together. Dr. Nadia Khoury is the actual killer—Webb recruited her by threatening to expose her brother's connections to Hezbollah unless she cooperated. She used her technical expertise to create the surveillance blackout using Ashford's override codes. She accessed the safe house through the ventilation shaft from the adjacent building (which she learned about when designing security), dropped through the ceiling during the blackout, injected Volkov with succinylcholine from CIA medical supplies Webb provided, took his phone and documents, and escaped back through the shaft. The staged entry log using Blackwell's stolen credentials was a misdirection. The Swiss payment was Webb paying Khoury. The Prague photograph shows Webb and Ashford meeting—Webb's distinctive Masonic ring visible. Sergeyev's suspicious entry was actually approved by Frost as part of a separate operation to flip him; he's innocent. Blackwell's Russian contact was investigating Webb independently—also innocent. The audio recordings prove Webb and Ashford met with Volkov multiple times while denying it. All three conspirators are arrested; Khoury agrees to testify against the others in exchange for reduced charges. The real horror: the intelligence they sold led to six political assassinations across Europe and two terrorist attacks. The body count is far higher than one dead spy.",
-    theme: {
-      primary: "#0d1b2a",
-      secondary: "#1b263b",
-      background: "linear-gradient(135deg, #020407 0%, #0d1b2a 100%)"
-    },
+    theme: caseThemes[5],
     tier: "master-detective"
   }
 ];

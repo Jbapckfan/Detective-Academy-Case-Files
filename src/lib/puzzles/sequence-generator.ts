@@ -1,27 +1,31 @@
 import seedrandom from 'seedrandom';
-import type { SequencePuzzleData, Difficulty } from '../../types';
+import type { SequencePuzzleData, Difficulty, CaseTheme } from '../../types';
+import { caseThemes } from '../../data/cases';
 
-export function generateSequencePuzzle(seed: string, difficulty: Difficulty, zoneId?: number): SequencePuzzleData {
+export function generateSequencePuzzle(
+  seed: string,
+  difficulty: Difficulty,
+  zoneId?: number,
+  themeOverride?: CaseTheme
+): SequencePuzzleData {
   const rng = seedrandom(seed);
 
-  const caseSymbols: Record<number, { symbols: string[], colors: string[] }> = {
-    1: {
-      symbols: ['💎', '🔑', '🔒', '⌚', '👤', '🚪'],
-      colors: ['gold', 'silver', 'ruby', 'sapphire', 'emerald', 'bronze']
-    },
-    2: {
-      symbols: ['🖼️', '🔦', '📷', '🎨', '🔍', '⚡'],
-      colors: ['crimson', 'azure', 'violet', 'amber', 'teal', 'scarlet']
-    },
-    3: {
-      symbols: ['💼', '📊', '💰', '🔐', '📱', '💻'],
-      colors: ['navy', 'charcoal', 'platinum', 'steel', 'carbon', 'graphite']
-    }
-  };
+  const selectedTheme = themeOverride || (zoneId ? caseThemes[zoneId] : undefined);
 
-  const theme = zoneId && caseSymbols[zoneId] ? caseSymbols[zoneId] : {
-    symbols: ['circle', 'square', 'triangle', 'star', 'heart', 'diamond'],
-    colors: ['red', 'blue', 'green', 'yellow', 'purple', 'orange']
+  const theme = {
+    symbols: selectedTheme?.emojiSet?.length
+      ? selectedTheme.emojiSet
+      : ['circle', 'square', 'triangle', 'star', 'heart', 'diamond'],
+    colors: selectedTheme
+      ? [
+          selectedTheme.palette.primary,
+          selectedTheme.palette.secondary,
+          selectedTheme.palette.accent,
+          selectedTheme.palette.highlight,
+          selectedTheme.palette.primary,
+          selectedTheme.palette.accent
+        ]
+      : ['red', 'blue', 'green', 'yellow', 'purple', 'orange'],
   };
 
   const colors = theme.colors;
