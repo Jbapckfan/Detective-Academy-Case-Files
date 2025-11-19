@@ -34,15 +34,25 @@ export function useAchievements() {
 
     // Count puzzles by type
     const puzzlesByType: Record<string, number> = {};
+    const puzzlesByTypeAndDifficulty: Record<string, Record<string, number>> = {};
     attempts.forEach((attempt: any) => {
       if (attempt.solved) {
         puzzlesByType[attempt.puzzle_type] = (puzzlesByType[attempt.puzzle_type] || 0) + 1;
+        if (!puzzlesByTypeAndDifficulty[attempt.puzzle_type]) {
+          puzzlesByTypeAndDifficulty[attempt.puzzle_type] = {};
+        }
+        puzzlesByTypeAndDifficulty[attempt.puzzle_type][attempt.difficulty] =
+          (puzzlesByTypeAndDifficulty[attempt.puzzle_type][attempt.difficulty] || 0) + 1;
       }
     });
 
     // Count perfect solves (no hints, no wrong attempts)
     const perfectSolves = attempts.filter(
       (a: any) => a.solved && a.hints_used === 0 && a.attempts_used === 0
+    ).length;
+
+    const firstTrySolves = attempts.filter(
+      (a: any) => a.solved && a.attempts_used === 1 && a.hints_used === 0
     ).length;
 
     // Count speed solves (under 10 seconds)
@@ -72,11 +82,16 @@ export function useAchievements() {
 
     // Calculate streak (simplified - would need date tracking for accurate implementation)
     const currentStreak = calculateStreak(sessions);
+    const bestStreak = sessions.reduce((max: number, session: any) => {
+      return Math.max(max, session.bestStreak || 0);
+    }, 0);
 
     return {
       totalPuzzles: attempts.filter((a: any) => a.solved).length,
       puzzlesByType,
+      puzzlesByTypeAndDifficulty,
       perfectSolves,
+      firstTrySolves,
       speedSolves,
       noHintSolves,
       totalCases: completedCases,
@@ -84,7 +99,8 @@ export function useAchievements() {
       totalSessions: sessions.length,
       companionLevel: data.companion?.level || 1,
       profiles: data.profiles || {},
-      currentStreak
+      currentStreak,
+      bestStreak
     };
   }, []);
 

@@ -158,7 +158,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       startedAt: new Date().toISOString(),
       puzzlesCompleted: 0,
       totalScore: 0,
-      attempts: []
+      attempts: [],
+      currentStreak: 0,
+      bestStreak: 0,
+      firstTrySolves: 0,
+      perfectCaseEligible: true
     };
 
     // Save session to localStorage
@@ -217,6 +221,17 @@ export const useGameStore = create<GameState>((set, get) => ({
     const { currentSession, currentPuzzle, profiles, user, companion } = get();
     if (!currentSession || !currentPuzzle || !user) return;
 
+    const previousStreak = currentSession.currentStreak || 0;
+    const currentStreak = attemptData.solved ? previousStreak + 1 : 0;
+    const bestStreak = Math.max(currentSession.bestStreak || 0, currentStreak);
+    const isFirstTry = attemptData.solved && attemptData.attemptsUsed === 1 && attemptData.hintsUsed === 0;
+    const firstTrySolves = (currentSession.firstTrySolves || 0) + (isFirstTry ? 1 : 0);
+    let perfectCaseEligible = currentSession.perfectCaseEligible ?? true;
+
+    if (!attemptData.solved || attemptData.hintsUsed > 0 || attemptData.attemptsUsed > 1) {
+      perfectCaseEligible = false;
+    }
+
     const score = adaptiveAlgorithm.calculatePuzzleScore({
       correct: attemptData.solved,
       timeTaken: attemptData.timeTaken,
@@ -266,7 +281,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       ...currentSession,
       puzzlesCompleted: currentSession.puzzlesCompleted + 1,
       totalScore: currentSession.totalScore + score,
-      attempts: [...currentSession.attempts, { ...attemptData, id: attempt.id, score }]
+      attempts: [...currentSession.attempts, { ...attemptData, id: attempt.id, score }],
+      currentStreak,
+      bestStreak,
+      firstTrySolves,
+      perfectCaseEligible
     };
 
     const xpGained = Math.round(score / 2);

@@ -4,6 +4,7 @@ export interface DialogueTrigger {
   event: 'puzzle_start' | 'struggling' | 'hint_request' | 'success' | 'failure' | 'quick_solve' | 'perfect_solve';
   personality: Personality;
   puzzleType?: PuzzleType;
+  caseId?: number;
   messages: string[];
   hints?: string[];
   state: CompanionState;
@@ -299,6 +300,80 @@ export const companionDialogue: DialogueTrigger[] = [
     state: 'celebrating'
   },
 
+  // CASE-SPECIFIC SUCCESS
+  {
+    event: 'success',
+    personality: 'owl',
+    puzzleType: 'logic',
+    caseId: 2,
+    messages: [
+      "Every clue lines up with the railway timetable—your deduction matches the midnight express perfectly.",
+      "Impeccable reasoning. That compartment mystery is closing like a sealed carriage door.",
+      "Your logic fits this train case like a glove on a conductor's hand."
+    ],
+    state: 'celebrating'
+  },
+  {
+    event: 'success',
+    personality: 'fox',
+    puzzleType: 'logic',
+    caseId: 2,
+    messages: [
+      "Ha! You just outsmarted everyone on that midnight train.",
+      "You solved it before the whistle blew—now that's how you ride the rails!",
+      "Another carriage, another clue cracked. We're flying down these tracks!"
+    ],
+    state: 'cheering'
+  },
+  {
+    event: 'success',
+    personality: 'robot',
+    puzzleType: 'logic',
+    caseId: 2,
+    messages: [
+      "TRAIN ROUTE OPTIMIZED. Logic parameters aligned with evidence!",
+      "TRACK LOCK SOLVED. Your reasoning cut through the steam like a laser.",
+      "CASE 2 UPDATE: Compartment mystery decrypted at record speed."
+    ],
+    state: 'celebrating'
+  },
+  {
+    event: 'success',
+    personality: 'owl',
+    puzzleType: 'sequence',
+    caseId: 3,
+    messages: [
+      "Those literary breadcrumbs formed a flawless pattern. The Poisoned Pen has nowhere to hide.",
+      "Elegant deduction. Every stanza of this case now scans perfectly.",
+      "You ordered those clues like chapters—our suspect's alibi is unraveling."
+    ],
+    state: 'celebrating'
+  },
+  {
+    event: 'success',
+    personality: 'fox',
+    puzzleType: 'sequence',
+    caseId: 3,
+    messages: [
+      "Nice! You just edited that clue chain into a bestseller-worthy twist.",
+      "That pattern snapped together like plot beats—mystery readers would cheer!",
+      "Whoa, chapter after chapter, you're rewriting this crime's ending."
+    ],
+    state: 'cheering'
+  },
+  {
+    event: 'success',
+    personality: 'robot',
+    puzzleType: 'sequence',
+    caseId: 3,
+    messages: [
+      "MANUSCRIPT SEQUENCE VERIFIED. Plot integrity restored.",
+      "PATTERN RECONSTRUCTED. The Poisoned Pen cannot glitch past this solve.",
+      "CHAPTER ORDER LOCKED. Narrative anomaly resolved successfully."
+    ],
+    state: 'celebrating'
+  },
+
   // QUICK SOLVE - Under 15 seconds
   {
     event: 'quick_solve',
@@ -395,6 +470,80 @@ export const companionDialogue: DialogueTrigger[] = [
       "SETBACK DETECTED BUT PROGRESS CONTINUES. Keep going, detective!"
     ],
     state: 'bonding'
+  },
+
+  // CASE-SPECIFIC FAILURE
+  {
+    event: 'failure',
+    personality: 'owl',
+    puzzleType: 'logic',
+    caseId: 2,
+    messages: [
+      "The timetable still has gaps—let's revisit the carriage order before the next stop.",
+      "Our deductions derailed briefly; we'll realign the clues before the train slows again.",
+      "This rail mystery requires patience. We'll synchronize the evidence on the next pass."
+    ],
+    state: 'bonding'
+  },
+  {
+    event: 'failure',
+    personality: 'fox',
+    puzzleType: 'logic',
+    caseId: 2,
+    messages: [
+      "That carriage slipped past us—no worries, we'll hop back on the trail!",
+      "The train's still rolling. We'll catch the right clue at the next signal.",
+      "Rail puzzles can be slippery, but we're not missing this ride."
+    ],
+    state: 'bonding'
+  },
+  {
+    event: 'failure',
+    personality: 'robot',
+    puzzleType: 'logic',
+    caseId: 2,
+    messages: [
+      "TRACK SOLVE FAILED. Recomputing route to compartment truth.",
+      "RAIL LOGIC ERROR LOGGED. Next attempt will adjust for timing offsets.",
+      "SIGNAL LOST MOMENTARILY. Re-aligning clues with schedule."
+    ],
+    state: 'bonding'
+  },
+  {
+    event: 'failure',
+    personality: 'owl',
+    puzzleType: 'sequence',
+    caseId: 3,
+    messages: [
+      "The stanza order slipped. We'll reorganize the verses and solve the manuscript.",
+      "That pattern blurred—let's annotate the clues and try again.",
+      "Even great editors need revisions. We'll refine the sequence next attempt."
+    ],
+    state: 'bonding'
+  },
+  {
+    event: 'failure',
+    personality: 'fox',
+    puzzleType: 'sequence',
+    caseId: 3,
+    messages: [
+      "Page order got messy—no stress, we'll shuffle the chapters and nail it!",
+      "The plot twist dodged us this time. Let's re-outline and pounce again.",
+      "We'll rewrite this scene on the next try. That Poisoned Pen won't win."
+    ],
+    state: 'bonding'
+  },
+  {
+    event: 'failure',
+    personality: 'robot',
+    puzzleType: 'sequence',
+    caseId: 3,
+    messages: [
+      "MANUSCRIPT ORDER ERROR. Re-indexing chapters for clarity.",
+      "PATTERN BUILD FAILED. Reloading literary dataset for next attempt.",
+      "SEQUENCE CHECKSUM INVALID. Recalculating narrative flow."
+    ],
+    state: 'bonding'
   }
 ];
 
@@ -402,8 +551,21 @@ export const companionDialogue: DialogueTrigger[] = [
 export function getCompanionDialogue(
   event: DialogueTrigger['event'],
   personality: Personality,
-  puzzleType?: PuzzleType
+  puzzleType?: PuzzleType,
+  caseId?: number
 ): DialogueTrigger | undefined {
+  // Try to find exact match with case context and puzzle type
+  if (caseId) {
+    const caseMatch = companionDialogue.find(
+      d =>
+        d.event === event &&
+        d.personality === personality &&
+        d.caseId === caseId &&
+        (!puzzleType || d.puzzleType === puzzleType)
+    );
+    if (caseMatch) return caseMatch;
+  }
+
   // Try to find exact match with puzzle type
   if (puzzleType) {
     const exactMatch = companionDialogue.find(
