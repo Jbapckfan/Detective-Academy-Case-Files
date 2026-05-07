@@ -10,7 +10,7 @@ export interface CompanionMessage {
   isHint?: boolean;
 }
 
-export function useCompanionDialogue(puzzleType?: PuzzleType) {
+export function useCompanionDialogue(puzzleType?: PuzzleType, caseId?: number) {
   const { companion, updateCompanionState } = useGameStore();
   const [currentMessage, setCurrentMessage] = useState<CompanionMessage | null>(null);
   const [hintCount, setHintCount] = useState(0);
@@ -39,7 +39,7 @@ export function useCompanionDialogue(puzzleType?: PuzzleType) {
   ) => {
     if (!companion) return;
 
-    const dialogue = getCompanionDialogue(event, companion.personality, puzzleType);
+    const dialogue = getCompanionDialogue(event, companion.personality, puzzleType, caseId);
     if (!dialogue) return;
 
     const message = getRandomMessage(dialogue);
@@ -64,11 +64,11 @@ export function useCompanionDialogue(puzzleType?: PuzzleType) {
   const requestHint = useCallback(() => {
     if (!companion) return null;
 
-    const dialogue = getCompanionDialogue('hint_request', companion.personality, puzzleType);
+    const dialogue = getCompanionDialogue('hint_request', companion.personality, puzzleType, caseId);
     if (!dialogue) return null;
 
     // Get the progressive hint
-    const strugglingDialogue = getCompanionDialogue('struggling', companion.personality, puzzleType);
+    const strugglingDialogue = getCompanionDialogue('struggling', companion.personality, puzzleType, caseId);
     const hint = strugglingDialogue ? getProgressiveHint(strugglingDialogue, hintCount) : null;
 
     if (hint) {

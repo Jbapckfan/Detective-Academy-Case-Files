@@ -62,6 +62,10 @@ export interface Session {
   puzzlesCompleted: number;
   totalScore: number;
   attempts: PuzzleAttempt[];
+  currentStreak?: number;
+  bestStreak?: number;
+  firstTrySolves?: number;
+  perfectCaseEligible?: boolean;
 }
 
 export interface Zone {

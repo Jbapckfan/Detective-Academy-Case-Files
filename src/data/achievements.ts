@@ -1,4 +1,4 @@
-import type { PuzzleType, Tier } from '../types';
+import type { Difficulty, PuzzleType, Tier } from '../types';
 
 export type AchievementCategory =
   | 'puzzle_mastery'   // Puzzle-specific achievements
@@ -33,6 +33,7 @@ export interface AchievementRequirement {
   value: number;
   puzzleType?: PuzzleType;
   tier?: Tier;
+  difficulty?: Difficulty;
   timeLimit?: number; // seconds
 }
 
@@ -144,6 +145,48 @@ export const achievements: Achievement[] = [
     icon: '🔧',
     requirement: { type: 'puzzle_count', value: 50, puzzleType: 'gear' },
     reward: { xp: 250, companionXP: 100 }
+  },
+
+  // === CASE-THEMED BADGES ===
+  {
+    id: 'railway_sleuth',
+    name: 'Railway Sleuth',
+    description: 'Crack 12 hard logic puzzles without losing your cool on the tracks',
+    category: 'puzzle_mastery',
+    rarity: 'epic',
+    icon: '🚂',
+    requirement: { type: 'puzzle_count', value: 12, puzzleType: 'logic', difficulty: 'hard' },
+    reward: { xp: 220, companionXP: 90 }
+  },
+  {
+    id: 'botanical_cipherbreaker',
+    name: 'Botanical Cipherbreaker',
+    description: 'Decode 15 medium sequence puzzles inspired by garden clues',
+    category: 'puzzle_mastery',
+    rarity: 'rare',
+    icon: '🌿',
+    requirement: { type: 'puzzle_count', value: 15, puzzleType: 'sequence', difficulty: 'medium' },
+    reward: { xp: 180, companionXP: 75 }
+  },
+  {
+    id: 'embers_of_truth',
+    name: 'Embers of Truth',
+    description: 'Solve 10 hard mirror puzzles while chasing arsonist clues',
+    category: 'puzzle_mastery',
+    rarity: 'epic',
+    icon: '🔥',
+    requirement: { type: 'puzzle_count', value: 10, puzzleType: 'mirror', difficulty: 'hard' },
+    reward: { xp: 240, companionXP: 100 }
+  },
+  {
+    id: 'vault_infiltrator',
+    name: 'Vault Infiltrator',
+    description: 'Complete 8 hard gear puzzles linked to high-stakes heists',
+    category: 'puzzle_mastery',
+    rarity: 'legendary',
+    icon: '🏴‍☠️',
+    requirement: { type: 'puzzle_count', value: 8, puzzleType: 'gear', difficulty: 'hard' },
+    reward: { xp: 320, companionXP: 140 }
   },
 
   // === SPEED ===
@@ -478,7 +521,9 @@ export function getAchievementProgress(achievement: Achievement, userStats: any)
   switch (req.type) {
     case 'puzzle_count':
       const puzzleCount = req.puzzleType
-        ? (userStats.puzzlesByType?.[req.puzzleType] || 0)
+        ? req.difficulty
+          ? (userStats.puzzlesByTypeAndDifficulty?.[req.puzzleType]?.[req.difficulty] || 0)
+          : (userStats.puzzlesByType?.[req.puzzleType] || 0)
         : (userStats.totalPuzzles || 0);
       return Math.min(100, (puzzleCount / req.value) * 100);
 

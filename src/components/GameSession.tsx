@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import { Companion } from './Companion';
@@ -10,16 +10,35 @@ import { GearPuzzle } from './puzzles/GearPuzzle';
 import { LogicPuzzle } from './puzzles/LogicPuzzle';
 import { SpatialPuzzle } from './puzzles/SpatialPuzzle';
 import { Trophy, Star, ArrowRight, Lightbulb } from 'lucide-react';
-import type { PuzzleConfig } from '../types';
+import type { Difficulty, PuzzleConfig, PuzzleType } from '../types';
 import { crimeScenes } from '../data/crimeScenes';
+import { cases } from '../data/cases';
 import { useCompanionDialogue } from '../hooks/useCompanionDialogue';
 import { useAchievements } from '../hooks/useAchievements';
 import { AchievementNotifications } from './AchievementNotification';
 import { DifficultyIndicator } from './DifficultyIndicator';
 import { soundEngine } from '../lib/soundEngine';
+import { StreakMeter } from './StreakMeter';
+import { PuzzleResultCard } from './PuzzleResultCard';
+import { PerfectCaseSummaryModal } from './PerfectCaseSummaryModal';
+import { getCompanionDialogue, getRandomMessage } from '../data/companionDialogue';
 
 interface Props {
   onComplete: () => void;
+}
+
+interface ResultContext {
+  solved: boolean;
+  puzzleType: PuzzleType;
+  difficulty: Difficulty;
+  timeTaken: number;
+  attemptsUsed: number;
+  hintsUsed: number;
+  isFirstTry: boolean;
+  isLastPuzzle: boolean;
+  companionReaction?: string;
+  nextClue?: { title: string; detail: string };
+  streakSnapshot: { current: number; best: number; firstTrySolves: number };
 }
 
 function GameSessionComponent({ onComplete }: Props) {
@@ -42,9 +61,14 @@ function GameSessionComponent({ onComplete }: Props) {
   const [sessionScore, setSessionScore] = useState(0);
   const [puzzleStartTime, setPuzzleStartTime] = useState<number>(0);
   const [wrongAttempts, setWrongAttempts] = useState(0);
+  const [resultContext, setResultContext] = useState<ResultContext | null>(null);
+  const [showPerfectModal, setShowPerfectModal] = useState(false);
   const strugglingTimerRef = useRef<NodeJS.Timeout>();
 
-  const { currentMessage, triggerDialogue, requestHint, clearMessage, resetHints } = useCompanionDialogue(currentPuzzle?.type);
+  const { currentMessage, triggerDialogue, requestHint, clearMessage, resetHints } = useCompanionDialogue(
+    currentPuzzle?.type,
+    currentZone?.id
+  );
   const { recentUnlocks, dismissUnlock, checkAchievements } = useAchievements();
 
   // Check achievements after each puzzle completion
@@ -56,6 +80,29 @@ function GameSessionComponent({ onComplete }: Props) {
 
   const totalPuzzles = adaptiveState?.nextPuzzles.length || 5;
   const isLastPuzzle = puzzleIndex >= totalPuzzles - 1;
+
+  const buildNextHookClue = useCallback(
+    (caseId: number, nextPuzzleType?: PuzzleType) => {
+      const detectiveCase = cases.find(c => c.id === caseId);
+      if (!detectiveCase) return undefined;
+
+      if (nextPuzzleType) {
+        const matchingEvidence = detectiveCase.evidenceTrail.find(e => e.puzzleType === nextPuzzleType);
+        if (matchingEvidence) {
+          return {
+            title: matchingEvidence.item,
+            detail: matchingEvidence.significance
+          };
+        }
+      }
+
+      return {
+        title: detectiveCase.title,
+        detail: detectiveCase.hook
+      };
+    },
+    []
+  );
 
   // Trigger companion dialogue when puzzle starts
   useEffect(() => {
@@ -106,6 +153,12 @@ function GameSessionComponent({ onComplete }: Props) {
   }) => {
     if (!currentPuzzle || !currentSession) return;
 
+    const completedPuzzle = currentPuzzle;
+    const projectedStreak = data.solved ? (currentSession.currentStreak || 0) + 1 : 0;
+    const projectedBestStreak = Math.max(currentSession.bestStreak || 0, projectedStreak);
+    const isFirstTry = data.solved && data.attemptsUsed === 1 && data.hintsUsed === 0;
+    const projectedFirstTry = (currentSession.firstTrySolves || 0) + (isFirstTry ? 1 : 0);
+
     // Clear struggling timer
     if (strugglingTimerRef.current) {
       clearTimeout(strugglingTimerRef.current);
@@ -143,13 +196,36 @@ function GameSessionComponent({ onComplete }: Props) {
       triggerDialogue('failure', true);
     }
 
-    if (isLastPuzzle) {
-      setTimeout(() => setShowCelebration(true), 2000); // Give time for celebration message
-    } else {
-      setTimeout(() => {
-        setPuzzleIndex(prev => prev + 1);
-      }, 2000);
-    }
+    const nextPuzzle = adaptiveState?.nextPuzzles[puzzleIndex + 1];
+    const reactionDialogue = companion && currentZone
+      ? getCompanionDialogue(
+          data.solved ? 'success' : 'failure',
+          companion.personality,
+          completedPuzzle.type,
+          currentZone.id
+        )
+      : undefined;
+
+    const companionReaction = reactionDialogue ? getRandomMessage(reactionDialogue) : undefined;
+    const nextClue = currentZone ? buildNextHookClue(currentZone.id, nextPuzzle?.type) : undefined;
+
+    setResultContext({
+      solved: data.solved,
+      puzzleType: completedPuzzle.type,
+      difficulty: completedPuzzle.difficulty,
+      timeTaken: data.timeTaken,
+      attemptsUsed: data.attemptsUsed,
+      hintsUsed: data.hintsUsed,
+      isFirstTry,
+      isLastPuzzle,
+      companionReaction,
+      nextClue,
+      streakSnapshot: {
+        current: projectedStreak,
+        best: projectedBestStreak,
+        firstTrySolves: projectedFirstTry
+      }
+    });
   };
 
   const handleBriefingComplete = () => {
@@ -162,10 +238,40 @@ function GameSessionComponent({ onComplete }: Props) {
     setShowBriefing(false);
   };
 
+  const handleResultContinue = () => {
+    if (!resultContext) return;
+    setResultContext(null);
+
+    if (resultContext.isLastPuzzle) {
+      if (currentSession?.perfectCaseEligible !== false && resultContext.solved) {
+        setShowPerfectModal(true);
+      } else {
+        setShowCelebration(true);
+      }
+    } else {
+      setPuzzleIndex(prev => prev + 1);
+    }
+  };
+
   const handleSessionComplete = () => {
     useGameStore.getState().completeSession();
     onComplete();
   };
+
+  const handlePerfectCaseContinue = () => {
+    setShowPerfectModal(false);
+    setShowCelebration(true);
+  };
+
+  if (showPerfectModal && currentSession && currentZone) {
+    return (
+      <PerfectCaseSummaryModal
+        session={currentSession}
+        zoneName={currentZone.name}
+        onContinue={handlePerfectCaseContinue}
+      />
+    );
+  }
 
   if (showCelebration) {
     return (
@@ -239,7 +345,7 @@ function GameSessionComponent({ onComplete }: Props) {
     );
   }
 
-  if (!currentPuzzle || !currentZone) {
+  if ((!currentPuzzle || !currentZone) && !resultContext) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -286,6 +392,22 @@ function GameSessionComponent({ onComplete }: Props) {
       {/* Achievement Notifications */}
       <AchievementNotifications achievements={recentUnlocks} onDismiss={dismissUnlock} />
 
+      {resultContext && (
+        <PuzzleResultCard
+          solved={resultContext.solved}
+          puzzleType={resultContext.puzzleType}
+          difficulty={resultContext.difficulty}
+          attemptsUsed={resultContext.attemptsUsed}
+          hintsUsed={resultContext.hintsUsed}
+          timeTaken={resultContext.timeTaken}
+          isFirstTry={resultContext.isFirstTry}
+          companionReaction={resultContext.companionReaction}
+          nextClue={resultContext.nextClue}
+          streakSnapshot={resultContext.streakSnapshot}
+          onContinue={handleResultContinue}
+        />
+      )}
+
       {/* Difficulty Indicator - Only show during actual puzzle solving */}
       {!showBriefing && !showCrimeScene && !showCelebration && (
         <DifficultyIndicator
@@ -324,6 +446,13 @@ function GameSessionComponent({ onComplete }: Props) {
           </div>
         </div>
 
+        <StreakMeter
+          current={currentSession?.currentStreak || 0}
+          best={currentSession?.bestStreak || 0}
+          firstTrySolves={currentSession?.firstTrySolves || 0}
+          perfectEligible={currentSession?.perfectCaseEligible !== false}
+        />
+
         {/* Hint Button */}
         {!showBriefing && !showCrimeScene && currentPuzzle && (
           <motion.button
@@ -338,19 +467,19 @@ function GameSessionComponent({ onComplete }: Props) {
         )}
       </div>
 
-      {currentPuzzle.type === 'sequence' && (
+      {currentPuzzle?.type === 'sequence' && (
         <SequencePuzzle config={currentPuzzle} onComplete={handlePuzzleComplete} />
       )}
-      {currentPuzzle.type === 'mirror' && (
+      {currentPuzzle?.type === 'mirror' && (
         <MirrorPuzzle config={currentPuzzle} onComplete={handlePuzzleComplete} />
       )}
-      {currentPuzzle.type === 'gear' && (
+      {currentPuzzle?.type === 'gear' && (
         <GearPuzzle config={currentPuzzle} onComplete={handlePuzzleComplete} />
       )}
-      {currentPuzzle.type === 'logic' && (
+      {currentPuzzle?.type === 'logic' && (
         <LogicPuzzle config={currentPuzzle} onComplete={handlePuzzleComplete} />
       )}
-      {currentPuzzle.type === 'spatial' && (
+      {currentPuzzle?.type === 'spatial' && (
         <SpatialPuzzle config={currentPuzzle} onComplete={handlePuzzleComplete} />
       )}
     </>
