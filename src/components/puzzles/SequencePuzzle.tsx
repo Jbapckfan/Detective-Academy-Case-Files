@@ -5,6 +5,7 @@ import type { PuzzleConfig } from '../../types';
 import { useGameStore } from '../../store/gameStore';
 import { HelpCircle, Search, Clock, Target } from 'lucide-react';
 import { casePuzzles } from '../../data/puzzles';
+import { crimeScenes } from '../../data/crimeScenes';
 
 interface Props {
   config: PuzzleConfig;
@@ -70,9 +71,15 @@ export function SequencePuzzle({ config, onComplete }: Props) {
   const storyData = useMemo(() => {
     const caseId = currentZone?.id || 1;
     const casePuzzleData = casePuzzles[caseId]?.find(p => p.type === 'sequence');
+    const scene = casePuzzleData ? crimeScenes[casePuzzleData.caseId] : crimeScenes[caseId];
+
     return {
       storyContext: casePuzzleData?.storyContext || 'Analyze the pattern to find the next element in the sequence.',
-      explanation: casePuzzleData?.explanation || 'Pattern identified successfully!'
+      explanation: casePuzzleData?.explanation || 'Pattern identified successfully!',
+      whyItMatters: casePuzzleData?.whyItMatters,
+      narratorHint: casePuzzleData?.narratorHint,
+      suspectReaction: casePuzzleData?.suspectReaction,
+      sceneName: scene?.sceneName
     };
   }, [currentZone?.id]);
 
@@ -275,7 +282,13 @@ export function SequencePuzzle({ config, onComplete }: Props) {
             <div className="text-2xl">🔍</div>
             <div>
               <h3 className="text-amber-400 font-semibold mb-1 text-sm uppercase tracking-wide">Case Evidence</h3>
+              {storyData.sceneName && (
+                <p className="text-xs text-amber-300 mb-1">{storyData.sceneName}</p>
+              )}
               <p className="text-slate-200 leading-relaxed italic">{storyData.storyContext}</p>
+              {storyData.whyItMatters && (
+                <p className="text-amber-200 text-sm mt-2">Why this matters: {storyData.whyItMatters}</p>
+              )}
             </div>
           </div>
         </motion.div>
@@ -373,6 +386,12 @@ export function SequencePuzzle({ config, onComplete }: Props) {
                 <div>
                   <p className="text-green-400 font-semibold mb-2">Case Breakthrough!</p>
                   <p className="text-green-100 text-sm leading-relaxed">{storyData.explanation}</p>
+                  {storyData.narratorHint && (
+                    <p className="text-emerald-200 text-xs mt-2">Narrator: {storyData.narratorHint}</p>
+                  )}
+                  {storyData.suspectReaction && (
+                    <p className="text-amber-200 text-xs mt-1">Suspect reaction: {storyData.suspectReaction}</p>
+                  )}
                 </div>
               </div>
             </motion.div>

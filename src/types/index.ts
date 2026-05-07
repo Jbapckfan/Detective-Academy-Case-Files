@@ -87,6 +87,20 @@ export interface PuzzleConfig {
   optimalMoves: number;
 }
 
+export interface CasePuzzle {
+  type: PuzzleType;
+  difficulty: Difficulty;
+  caseId: number;
+  sceneId: string;
+  storyContext: string;
+  data: SequencePuzzleData | MirrorPuzzleData | GearPuzzleData | LogicPuzzleData | SpatialPuzzleData;
+  optimalMoves: number;
+  explanation: string;
+  whyItMatters?: string;
+  narratorHint?: string;
+  suspectReaction?: string;
+}
+
 export interface AdaptiveState {
   profiles: CognitiveProfiles;
   nextPuzzles: PuzzleConfig[];
